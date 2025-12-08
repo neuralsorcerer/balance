@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>balance.weighting_methods.ipw &#8212; balance  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=fb9458d3" />
+    <script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="balance.weighting_methods.poststratify" href="balance.weighting_methods.poststratify.html" />
+    <link rel="prev" title="balance.weighting_methods.cbps" href="balance.weighting_methods.cbps.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="balance.weighting_methods.poststratify.html" title="balance.weighting_methods.poststratify"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="balance.weighting_methods.cbps.html" title="balance.weighting_methods.cbps"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">balance  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="balance.html" >balance</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="balance.weighting_methods.html" accesskey="U">balance.weighting_methods</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">balance.weighting_methods.ipw</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-balance.weighting_methods.ipw">
+<span id="balance-weighting-methods-ipw"></span><h1>balance.weighting_methods.ipw<a class="headerlink" href="#module-balance.weighting_methods.ipw" title="Link to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="balance.weighting_methods.ipw.calc_dev">
+<span class="sig-prename descclassname"><span class="pre">balance.weighting_methods.ipw.</span></span><span class="sig-name descname"><span class="pre">calc_dev</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_matrix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">csr_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ClassifierMixin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">foldids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/balance/weighting_methods/ipw.html#calc_dev"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#balance.weighting_methods.ipw.calc_dev" title="Link to this definition">¶</a></dt>
+<dd><p>10 fold cross validation to calculate holdout deviance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X_matrix</strong> (<em>csr_matrix</em>) – Model matrix,</p></li>
+<li><p><strong>y</strong> (<em>np.ndarray</em>) – Vector of sample inclusion (1=sample, 0=target),</p></li>
+<li><p><strong>model</strong> (<em>_type_</em>) – LogisticRegression object from sklearn,</p></li>
+<li><p><strong>model_weights</strong> (<em>np.ndarray</em>) – Vector of sample and target weights,</p></li>
+<li><p><strong>foldids</strong> (<em>np.ndarray</em>) – Vector of cross-validation fold indices.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>mean and standard deviance of holdout deviance.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float, float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="balance.weighting_methods.ipw.choose_regularization">
+<span class="sig-prename descclassname"><span class="pre">balance.weighting_methods.ipw.</span></span><span class="sig-name descname"><span class="pre">choose_regularization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">links</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambdas</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">balance_classes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_de</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trim_options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(20,</span> <span class="pre">10,</span> <span class="pre">5,</span> <span class="pre">2.5,</span> <span class="pre">1.25,</span> <span class="pre">0.5,</span> <span class="pre">0.25,</span> <span class="pre">0.125,</span> <span class="pre">0.05,</span> <span class="pre">0.01)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_asmd_candidates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/balance/weighting_methods/ipw.html#choose_regularization"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#balance.weighting_methods.ipw.choose_regularization" title="Link to this definition">¶</a></dt>
+<dd><p>Searches through the regularisation parameters of the model and weight
+trimming levels to find the combination with the highest covariate
+ASMD reduction (in sample_df and target_df, NOT in the model matrix used for modeling
+the response) subject to the design effect being lower than max_de (deafults to 1.5).
+The function preforms a grid search over the n_asmd_candidates (deafults to 10) models
+with highest DE lower than max_de (assuming higher DE means more bias reduction).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>links</strong> (<em>Links</em><em>[</em><em>Any</em><em>]</em>) – list of link predictions from sklearn</p></li>
+<li><p><strong>lambdas</strong> (<em>np.ndarray</em>) – the lambda values for regularization</p></li>
+<li><p><strong>sample_df</strong> (<em>pd.DataFrame</em>) – a dataframe representing the sample</p></li>
+<li><p><strong>target_df</strong> (<em>pd.DataFrame</em>) – a dataframe representing the target</p></li>
+<li><p><strong>sample_weights</strong> (<em>pd.Series</em>) – design weights for sample</p></li>
+<li><p><strong>target_weights</strong> (<em>pd.Series</em>) – design weights for target</p></li>
+<li><p><strong>balance_classes</strong> (<em>bool</em>) – whether balance_classes used</p></li>
+<li><p><strong>max_de</strong> (<em>float</em><em>, </em><em>optional</em>) – upper bound for the design effect of the computed weights.
+Used for choosing the model regularization and trimming.
+If set to None, then it uses ‘lambda_1se’. Defaults to 1.5.</p></li>
+<li><p><strong>trim_options</strong> (<em>Tuple</em><em>[ </em><em>int</em><em>, </em><em>int</em><em>, </em><em>int</em><em>, </em><em>float</em><em>, </em><em>float</em><em>, </em><em>float</em><em>, </em><em>float</em><em>, </em><em>float</em><em>, </em><em>float</em><em>, </em><em>float</em><em> ]</em><em>, </em><em>optional</em>) – options for weight_trimming_mean_ratio. Defaults to (20, 10, 5, 2.5, 1.25, 0.5, 0.25, 0.125, 0.05, 0.01).</p></li>
+<li><p><strong>n_asmd_candidates</strong> (<em>int</em><em>, </em><em>optional</em>) – number of candidates for grid search.. Defaults to 10.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl>
+<dt>Dict of the value of the chosen lambda, the value of trimming, model description.</dt><dd><dl>
+<dt>Shape is</dt><dd><dl class="simple">
+<dt>{</dt><dd><p>“best”: {“s”: best.s.values, “trim”: best.trim.values[0]},
+“perf”: all_perf,</p>
+</dd>
+</dl>
+<p>}</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Any]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="balance.weighting_methods.ipw.ipw">
+<span class="sig-prename descclassname"><span class="pre">balance.weighting_methods.ipw.</span></span><span class="sig-name descname"><span class="pre">ipw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pd.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pd.Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pd.DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pd.Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">ClassifierMixin</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'sklearn'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_trimming_mean_ratio</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_trimming_percentile</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">balance_classes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transformations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'default'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">na_action</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'add_indicator'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_de</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_min</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lambda_max</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_lambdas</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">250</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">formula</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty_factor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">one_hot_encoding</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2020</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/balance/weighting_methods/ipw.html#ipw"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#balance.weighting_methods.ipw.ipw" title="Link to this definition">¶</a></dt>
+<dd><p>Fit an ipw (inverse propensity score weighting) for the sample using the target.</p>
+<blockquote>
+<div><dl>
+<dt>Args:</dt><dd><p>sample_df (pd.DataFrame): a dataframe representing the sample
+sample_weights (pd.Series): design weights for sample
+target_df (pd.DataFrame): a dataframe representing the target
+target_weights (pd.Series): design weights for target
+variables (Optional[List[str]], optional): list of variables to include in the model.</p>
+<blockquote>
+<div><p>If None all joint variables of sample_df and target_df are used. Defaults to None.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>model (Union[str, ClassifierMixin, None], optional): Model used for modeling the</dt><dd><p>propensity scores. Provide <code class="docutils literal notranslate"><span class="pre">&quot;sklearn&quot;</span></code> (default) or <code class="docutils literal notranslate"><span class="pre">None</span></code> to use logistic
+regression, or pass an sklearn classifier implementing <code class="docutils literal notranslate"><span class="pre">fit</span></code> and
+<code class="docutils literal notranslate"><span class="pre">predict_proba</span></code>. Common choices include scikit-learn estimators such as
+<code class="xref py py-class docutils literal notranslate"><span class="pre">sklearn.linear_model.LogisticRegression</span></code>,
+<code class="xref py py-class docutils literal notranslate"><span class="pre">sklearn.ensemble.RandomForestClassifier</span></code>,
+<code class="xref py py-class docutils literal notranslate"><span class="pre">sklearn.ensemble.GradientBoostingClassifier</span></code>,
+<code class="xref py py-class docutils literal notranslate"><span class="pre">sklearn.ensemble.HistGradientBoostingClassifier</span></code>, and
+<code class="xref py py-class docutils literal notranslate"><span class="pre">sklearn.linear_model.SGDClassifier</span></code> configured with
+<code class="docutils literal notranslate"><span class="pre">loss=&quot;log_loss&quot;</span></code>. To customize the built-in logistic regression
+settings, pass a configured <code class="xref py py-class docutils literal notranslate"><span class="pre">sklearn.linear_model.LogisticRegression</span></code>
+instance as <code class="docutils literal notranslate"><span class="pre">model</span></code>. Custom classifiers should expose a
+<code class="docutils literal notranslate"><span class="pre">predict_proba</span></code> method returning class probabilities.</p>
+</dd>
+<dt>weight_trimming_mean_ratio (Optional[Union[int, float]], optional): indicating the ratio from above according to which</dt><dd><p>the weights are trimmed by mean(weights) * ratio.
+Defaults to 20.</p>
+</dd>
+<dt>weight_trimming_percentile (Optional[float], optional): if weight_trimming_percentile is not none, winsorization is applied.</dt><dd><p>if None then trimming is applied. Defaults to None.</p>
+</dd>
+<dt>balance_classes (bool, optional): whether to balance the sample and target size for running the model.</dt><dd><p>True is preferable for imbalanced cases.
+It shouldn’t have an effect on the final weights as this is factored
+into the computation of the weights. TODO: add ref. Defaults to True.</p>
+</dd>
+<dt>transformations (str, optional): what transformations to apply to data before fitting the model.</dt><dd><p>See apply_transformations function. Defaults to “default”.</p>
+</dd>
+<dt>na_action (str, optional): what to do with NAs.</dt><dd><p>See add_na_indicator function. Defaults to “add_indicator”.</p>
+</dd>
+<dt>max_de (Optional[float], optional): upper bound for the design effect of the computed weights.</dt><dd><p>Used for choosing the model regularization and trimming.
+If set to None, then it uses ‘lambda_1se’. Defaults to 1.5.</p>
+</dd>
+<dt>formula (Union[str, List[str], None], optional): The formula according to which build the model.</dt><dd><p>In case of list of formula, the model matrix will be built in steps and
+concatenated together. Defaults to None.</p>
+</dd>
+<dt>penalty_factor (Optional[List[float]], optional): the penalty factors used in ipw. The penalty</dt><dd><p>should have the same length as the formula list (and applies to each element of formula).
+Smaller penalty on some formula will lead to elements in that formula to get more adjusted, i.e. to have a higher chance to get into the model (and not zero out). A penalty of 0 will make sure the element is included in the model.
+If not provided, assume the same penalty (1) for all variables. Defaults to None.</p>
+</dd>
+<dt>one_hot_encoding (bool, optional): whether to encode all factor variables in the model matrix with</dt><dd><p>almost_one_hot_encoding. This is recomended in case of using
+LASSO on the data (Default: False).
+one_hot_encoding_greater_3 creates one-hot-encoding for all
+categorical variables with more than 2 categories (i.e. the
+number of columns will be equal to the number of categories),
+and only 1 column for variables with 2 levels (treatment contrast). Defaults to False.</p>
+</dd>
+</dl>
+<p>random_seed (int, optional): Random seed to use. Defaults to 2020.</p>
+</dd>
+<dt>Examples:</dt><dd><p>Example 1: Using RandomForestClassifier</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">balance.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_sim_data</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">balance.weighting_methods.ipw</span><span class="w"> </span><span class="kn">import</span> <span class="n">ipw</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.ensemble</span><span class="w"> </span><span class="kn">import</span> <span class="n">RandomForestClassifier</span>
+
+<span class="c1"># Load simulated data</span>
+<span class="n">target_df</span><span class="p">,</span> <span class="n">sample_df</span> <span class="o">=</span> <span class="n">load_sim_data</span><span class="p">()</span>
+
+<span class="c1"># Assign weights</span>
+<span class="n">sample_weights</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">sample_df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+<span class="n">target_weights</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">target_df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+
+<span class="c1"># Define model</span>
+<span class="n">rf</span> <span class="o">=</span> <span class="n">RandomForestClassifier</span><span class="p">(</span><span class="n">n_estimators</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="c1"># Run IPW with sklearn model</span>
+<span class="n">result_rf</span> <span class="o">=</span> <span class="n">ipw</span><span class="p">(</span>
+    <span class="n">sample_df</span><span class="p">,</span>
+    <span class="n">sample_weights</span><span class="p">,</span>
+    <span class="n">target_df</span><span class="p">,</span>
+    <span class="n">target_weights</span><span class="p">,</span>
+    <span class="n">variables</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;gender&quot;</span><span class="p">,</span> <span class="s2">&quot;age_group&quot;</span><span class="p">,</span> <span class="s2">&quot;income&quot;</span><span class="p">],</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">rf</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;RandomForestClassifier result:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result_rf</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Output:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">RandomForestClassifier</span> <span class="n">result</span><span class="p">:</span>
+<span class="p">{</span><span class="s1">&#39;weight&#39;</span><span class="p">:</span> <span class="mi">0</span>      <span class="mf">6.727622</span>
+<span class="mi">1</span>      <span class="mf">6.811271</span>
+<span class="mi">2</span>      <span class="mf">1.861028</span>
+<span class="mi">3</span>      <span class="mf">5.023780</span>
+<span class="mi">4</span>      <span class="mf">8.212948</span>
+         <span class="o">...</span>
+<span class="mi">995</span>    <span class="mf">8.302406</span>
+<span class="mi">996</span>    <span class="mf">2.229000</span>
+<span class="mi">997</span>    <span class="mf">8.344916</span>
+<span class="mi">998</span>    <span class="mf">9.747695</span>
+<span class="mi">999</span>    <span class="mf">6.018009</span>
+<span class="n">Length</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">float64</span><span class="p">,</span> <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;method&#39;</span><span class="p">:</span> <span class="s1">&#39;ipw&#39;</span><span class="p">,</span> <span class="o">...</span><span class="p">}}</span>
+</pre></div>
+</div>
+<p>Example 2: Using default sklearn model (LogisticRegression)</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Run IPW with default sklearn model</span>
+<span class="n">result_sklearn</span> <span class="o">=</span> <span class="n">ipw</span><span class="p">(</span>
+    <span class="n">sample_df</span><span class="p">,</span>
+    <span class="n">sample_weights</span><span class="p">,</span>
+    <span class="n">target_df</span><span class="p">,</span>
+    <span class="n">target_weights</span><span class="p">,</span>
+    <span class="n">variables</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;gender&quot;</span><span class="p">,</span> <span class="s2">&quot;age_group&quot;</span><span class="p">,</span> <span class="s2">&quot;income&quot;</span><span class="p">],</span>
+    <span class="n">model</span><span class="o">=</span><span class="s2">&quot;sklearn&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Default sklearn model result:&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">result_sklearn</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Output:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Default</span> <span class="n">sklearn</span> <span class="n">model</span> <span class="n">result</span><span class="p">:</span>
+<span class="p">{</span><span class="s1">&#39;weight&#39;</span><span class="p">:</span> <span class="mi">0</span>       <span class="mf">6.531728</span>
+<span class="mi">1</span>       <span class="mf">9.617159</span>
+<span class="mi">2</span>       <span class="mf">3.562973</span>
+<span class="mi">3</span>       <span class="mf">6.952117</span>
+<span class="mi">4</span>       <span class="mf">5.129230</span>
+         <span class="o">...</span>
+<span class="mi">995</span>     <span class="mf">9.353052</span>
+<span class="mi">996</span>     <span class="mf">3.973554</span>
+<span class="mi">997</span>     <span class="mf">7.095483</span>
+<span class="mi">998</span>    <span class="mf">11.331144</span>
+<span class="mi">999</span>     <span class="mf">7.913133</span>
+<span class="n">Length</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">float64</span><span class="p">,</span> <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;method&#39;</span><span class="p">:</span> <span class="s1">&#39;ipw&#39;</span><span class="p">,</span> <span class="o">...</span><span class="p">}}</span>
+</pre></div>
+</div>
+<p>Example 3: Comparing weights from different models</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="c1"># Combine weights into a DataFrame</span>
+<span class="n">comparison_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+    <span class="s1">&#39;RandomForest&#39;</span><span class="p">:</span> <span class="n">result_rf</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">],</span>
+    <span class="s1">&#39;Sklearn&#39;</span><span class="p">:</span> <span class="n">result_sklearn</span><span class="p">[</span><span class="s1">&#39;weight&#39;</span><span class="p">]</span>
+<span class="p">})</span>
+<span class="c1"># Calculate difference</span>
+<span class="n">comparison_df</span><span class="p">[</span><span class="s1">&#39;Difference&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">comparison_df</span><span class="p">[</span><span class="s1">&#39;RandomForest&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="n">comparison_df</span><span class="p">[</span><span class="s1">&#39;Sklearn&#39;</span><span class="p">]</span>
+<span class="c1"># Print summary statistics</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</div></blockquote>
+<dl>
+<dt>Mean difference:”, comparison_df[‘Difference’].mean())</dt><dd><blockquote>
+<div><blockquote>
+<div><p>print(“Std difference:”, comparison_df[‘Difference’].std())</p>
+</div></blockquote>
+<p>Output:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Mean</span> <span class="n">difference</span><span class="p">:</span> <span class="o">-</span><span class="mf">2.9416469260468146e-15</span>
+<span class="n">Std</span> <span class="n">difference</span><span class="p">:</span> <span class="mf">8.043311719328154</span>
+</pre></div>
+</div>
+</div></blockquote>
+<dl>
+<dt>Raises:</dt><dd><p>Exception: f”Sample indicator only has value {_n_unique}. This can happen when your sample or target are empty from unknown reason”
+NotImplementedError: If <code class="docutils literal notranslate"><span class="pre">model</span></code> is a string other than “sklearn” (the</p>
+<blockquote>
+<div><p>built-in logistic regression option) or the deprecated “glmnet”.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>TypeError: If <code class="docutils literal notranslate"><span class="pre">model</span></code> is neither a supported string nor an sklearn</dt><dd><p>classifier exposing <code class="docutils literal notranslate"><span class="pre">predict_proba</span></code>.</p>
+</dd>
+</dl>
+</dd>
+<dt>Returns:</dt><dd><dl>
+<dt>Dict[str, Any]: A dictionary includes:</dt><dd><p>“weight” — The weights for the sample.
+“model” — parameters of the model:fit, performance, X_matrix_columns, lambda,</p>
+<blockquote>
+<div><p>weight_trimming_mean_ratio</p>
+</div></blockquote>
+<p>Shape of the Dict:
+{</p>
+<blockquote>
+<div><p>“weight”: weights,
+“model”: {</p>
+<blockquote>
+<div><p>“method”: “ipw”,
+“X_matrix_columns”: X_matrix_columns_names,
+“fit”: fit,
+“perf”: performance,
+“lambda”: best_s,
+“weight_trimming_mean_ratio”: weight_trimming_mean_ratio,</p>
+</div></blockquote>
+<p>},</p>
+</div></blockquote>
+<p>}</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="balance.weighting_methods.ipw.link_transform">
+<span class="sig-prename descclassname"><span class="pre">balance.weighting_methods.ipw.</span></span><span class="sig-name descname"><span class="pre">link_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pred</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="reference internal" href="_modules/balance/weighting_methods/ipw.html#link_transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#balance.weighting_methods.ipw.link_transform" title="Link to this definition">¶</a></dt>
+<dd><p>Transforms probabilities into log odds (link function).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pred</strong> (<em>np.ndarray</em>) – LogisticRegression probability predictions from sklearn.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Array of log odds.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="balance.weighting_methods.ipw.model_coefs">
+<span class="sig-prename descclassname"><span class="pre">balance.weighting_methods.ipw.</span></span><span class="sig-name descname"><span class="pre">model_coefs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ClassifierMixin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/balance/weighting_methods/ipw.html#model_coefs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#balance.weighting_methods.ipw.model_coefs" title="Link to this definition">¶</a></dt>
+<dd><p>Extract coefficient-like information from sklearn classifiers.</p>
+<p>For linear models such as <code class="xref py py-class docutils literal notranslate"><span class="pre">LogisticRegression</span></code>,
+this returns the fitted coefficients (and intercept when available).  For
+classifiers that do not expose a <code class="docutils literal notranslate"><span class="pre">coef_</span></code> attribute (e.g. tree ensembles),
+an empty <code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.Series</span></code> is returned so downstream diagnostics can
+handle the absence of coefficients gracefully.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>ClassifierMixin</em>) – Fitted sklearn classifier.</p></li>
+<li><p><strong>feature_names</strong> (<em>Optional</em><em>[</em><em>list</em><em>]</em><em>, </em><em>optional</em>) – Feature names associated with
+the model matrix columns. When provided and the model exposes a
+one-dimensional <code class="docutils literal notranslate"><span class="pre">coef_</span></code> array, the returned Series is indexed by
+<code class="docutils literal notranslate"><span class="pre">[&quot;intercept&quot;]</span> <span class="pre">+</span> <span class="pre">feature_names</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary containing a <code class="docutils literal notranslate"><span class="pre">coefs</span></code> key with a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.Series</span></code> of coefficients (which may be empty when the
+model does not expose linear coefficients).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Any]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="balance.weighting_methods.ipw.weights_from_link">
+<span class="sig-prename descclassname"><span class="pre">balance.weighting_methods.ipw.</span></span><span class="sig-name descname"><span class="pre">weights_from_link</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">link</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">balance_classes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pd.Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">pd.Series</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_trimming_mean_ratio</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">None</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_trimming_percentile</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_sum_of_weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">pd.Series</span></span></span><a class="reference internal" href="_modules/balance/weighting_methods/ipw.html#weights_from_link"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#balance.weighting_methods.ipw.weights_from_link" title="Link to this definition">¶</a></dt>
+<dd><p>Transform link predictions into weights, by exponentiating them, and optionally balancing the classes and trimming
+the weights, then normalize the weights to have sum equal to the sum of the target weights.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>link</strong> (<em>Any</em>) – link predictions</p></li>
+<li><p><strong>balance_classes</strong> (<em>bool</em>) – whether balance_classes used</p></li>
+<li><p><strong>sample_weights</strong> (<em>pd.Series</em>) – vector of sample weights</p></li>
+<li><p><strong>target_weights</strong> (<em>pd.Series</em>) – vector of sample weights</p></li>
+<li><p><strong>weight_trimming_mean_ratio</strong> (<em>Union</em><em>[</em><em>None</em><em>, </em><em>float</em><em>, </em><em>int</em><em>]</em><em>, </em><em>optional</em>) – to be used in <code class="xref py py-func docutils literal notranslate"><span class="pre">trim_weights()</span></code>. Defaults to None.</p></li>
+<li><p><strong>weight_trimming_percentile</strong> (<em>Optional</em><em>[</em><em>float</em><em>]</em><em>, </em><em>optional</em>) – to be used in <code class="xref py py-func docutils literal notranslate"><span class="pre">trim_weights()</span></code>. Defaults to None.</p></li>
+<li><p><strong>keep_sum_of_weights</strong> (<em>bool</em><em>, </em><em>optional</em>) – to be used in <code class="xref py py-func docutils literal notranslate"><span class="pre">trim_weights()</span></code>. Defaults to True.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A vecotr of normalized weights (for sum of target weights)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.Series</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+  <div>
+    <h3><a href="index.html">Table of Contents</a></h3>
+    <ul>
+<li><a class="reference internal" href="#">balance.weighting_methods.ipw</a><ul>
+<li><a class="reference internal" href="#balance.weighting_methods.ipw.calc_dev"><code class="docutils literal notranslate"><span class="pre">calc_dev()</span></code></a></li>
+<li><a class="reference internal" href="#balance.weighting_methods.ipw.choose_regularization"><code class="docutils literal notranslate"><span class="pre">choose_regularization()</span></code></a></li>
+<li><a class="reference internal" href="#balance.weighting_methods.ipw.ipw"><code class="docutils literal notranslate"><span class="pre">ipw()</span></code></a></li>
+<li><a class="reference internal" href="#balance.weighting_methods.ipw.link_transform"><code class="docutils literal notranslate"><span class="pre">link_transform()</span></code></a></li>
+<li><a class="reference internal" href="#balance.weighting_methods.ipw.model_coefs"><code class="docutils literal notranslate"><span class="pre">model_coefs()</span></code></a></li>
+<li><a class="reference internal" href="#balance.weighting_methods.ipw.weights_from_link"><code class="docutils literal notranslate"><span class="pre">weights_from_link()</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="balance.weighting_methods.cbps.html"
+                          title="previous chapter">balance.weighting_methods.cbps</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="balance.weighting_methods.poststratify.html"
+                          title="next chapter">balance.weighting_methods.poststratify</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/balance.weighting_methods.ipw.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="balance.weighting_methods.poststratify.html" title="balance.weighting_methods.poststratify"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="balance.weighting_methods.cbps.html" title="balance.weighting_methods.cbps"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">balance  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="balance.html" >balance</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="balance.weighting_methods.html" >balance.weighting_methods</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">balance.weighting_methods.ipw</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    </div>
+  </body>
+</html>

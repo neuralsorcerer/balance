@@ -1,0 +1,21 @@
+﻿balance.weighting\_methods
+==========================
+
+.. automodule:: balance.weighting_methods
+   :members:
+
+
+
+
+**Sub-Modules**
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   adjust_null
+   cbps
+   ipw
+   poststratify
+   rake
+

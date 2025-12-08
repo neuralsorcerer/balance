@@ -1,0 +1,21 @@
+﻿balance.stats\_and\_plots
+=========================
+
+.. automodule:: balance.stats_and_plots
+   :members:
+
+
+
+
+**Sub-Modules**
+
+.. autosummary::
+   :toctree:
+   :recursive:
+
+   general_stats
+   weighted_comparisons_plots
+   weighted_comparisons_stats
+   weighted_stats
+   weights_stats
+
