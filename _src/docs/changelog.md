@@ -25,7 +25,17 @@ hide_title: true
     [#57](https://github.com/facebookresearch/balance/issues/57)). Tests are
     added.
 
-- **Warning of high-cardinality categorical features used as coveriates in
+- **Richer `Sample.summary()` diagnostics**
+  - The adjusted sample summary now groups covariate diagnostics together,
+    expands weight diagnostics to report design effect alongside effective
+    sample proportion (ESSP) and effective sample size (ESS), and surfaces
+    weighted outcome means when available. This makes the printed summary a
+    concise snapshot of covariate balance, weight health, and outcome behavior
+    post-adjustment. When the design effect cannot be computed reliably, the
+    summary now reports it as unavailable instead of emitting misleading
+    effective sample diagnostics.
+
+- **Warning of high-cardinality categorical features used as covariates in
   .adjust()**
   - Added detection and warnings for high-cardinality categorical features
     (object, category, string dtypes) before weight fitting when using
@@ -58,6 +68,16 @@ hide_title: true
     contain `None`, `NaN`, or `pd.NA` values. The error includes the total count
     of offending rows and a preview of the affected observations to simplify
     debugging bad inputs.
+- **Percentile weight trimming enforces requested lower bounds across platforms**
+  - `trim_weights()` now computes winsorization thresholds directly via
+    percentile quantiles with explicit clipping bounds, ensuring lower-tail
+    trimming respects the requested cutoff on all supported Python and NumPy
+    versions.
+  - **Breaking change:** percentile-based clipping may shift by roughly one
+    observation at typical limits (for example, 1% clipping on 1..100 now
+    yields bounds of 3 and 98 instead of 2 and 99). If you need to preserve the
+    previous behavior, lower the requested percentiles slightly to reproduce
+    earlier cut points.
 
 ## Tests
 
