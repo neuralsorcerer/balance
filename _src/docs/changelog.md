@@ -14,12 +14,21 @@ hide_title: true
 
 ## Bug Fixes
 
+- **Updated `Sample.__str__()` to format weight diagnostics like `Sample.summary()`**
+  - Weight diagnostics (design effect, effective sample size proportion, effective sample size)
+    are now displayed on separate lines instead of comma-separated on one line.
+  - Replaced "eff." abbreviations with full "effective" word for better readability.
+  - Improves consistency with `Sample.summary()` output format.
 - **Numerically stable CBPS probabilities**
   - The CBPS helper now uses a stable logistic transform to avoid exponential
     overflow warnings during probability computation in constraint checks.
 - **Silenced pandas observed default warning**
   - Explicitly sets `observed=False` in weighted categorical KLD calculations
     to retain current behavior and avoid future pandas default changes.
+- **Fixed `plot_qq_categorical` to respect the `weighted` parameter for target data**
+  - Previously, the target weights were always applied regardless of the
+    `weighted=False` setting, causing inconsistent behavior between sample
+    and target proportions in categorical QQ plots.
 
 # 0.14.0 (2025-12-14)
 
