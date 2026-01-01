@@ -18,6 +18,9 @@ hide_title: true
   - `Sample.adjust()` now warns when the target exceeds 100k rows and is at
     least 10x larger than the sample, highlighting that uncertainty is
     dominated by the sample (akin to a one-sample comparison).
+- **Expose outcome columns selection in the CLI**
+  - Added `--outcome_columns` to choose which columns are treated as outcomes
+    instead of defaulting to all non-id/weight/covariate columns. Remaining columns are moved to `ignored_columns`.
 
 ## Bug Fixes
 
@@ -36,6 +39,9 @@ hide_title: true
   - Previously, the target weights were always applied regardless of the
     `weighted=False` setting, causing inconsistent behavior between sample
     and target proportions in categorical QQ plots.
+- **Restored CBPS tutorial plots**
+  - Re-enabled scatter plots in the CBPS comparison tutorial notebook while
+    avoiding GitHub Pages rendering errors and pandas colormap warnings.
 
 # 0.14.0 (2025-12-14)
 
