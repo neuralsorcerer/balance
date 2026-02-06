@@ -23,6 +23,9 @@ hide_title: true
     `--weights_impact_on_outcome_method`.
 - **Pandas 3 support**
   - Updated compatibility and tests for pandas 3.x
+- **Formula support for BalanceDF model matrices**
+  - `BalanceDF.model_matrix()` now accepts a `formula` argument to build
+    custom model matrices without precomputing them manually.
 
 ## Bug Fixes
 
@@ -273,7 +276,7 @@ hide_title: true
     compatibility
   - Enhanced plotting function type safety with `TypedDict` definitions and
     proper type narrowing
-  - Replaced assert-based type narrowing with `_verify_value_type()` helper for
+  - Replaced assert-based type narrowing with `_assert_type()` helper for
     better error messages and pyre-strict compliance
 
 - **Renamed Balance**_DF to BalanceDF_\*\*\*\*
