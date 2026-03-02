@@ -54,6 +54,10 @@ hide_title: true
     appear in the final output CSV. Keep columns that are not id, weight,
     covariate, or outcome columns will be placed into ``ignore_columns`` during
     processing but are still retained and available in the output.
+- **Clarified `_prepare_input_model_matrix` argument docs**
+  - Updated docstrings in `balance.utils.model_matrix` with
+    explicit descriptions for `sample`, `target`, `variables`, and `add_na`
+    behavior when preparing model-matrix inputs.
 
 ## Bug Fixes
 
@@ -67,6 +71,11 @@ hide_title: true
     like `a`, `a_1`, and repeated `a` names appear together.
   - Duplicate columns are now renamed deterministically to guaranteed-unique
     names, preventing downstream clashes after formula sanitization.
+- **`model_matrix` empty-sample errors now raise `ValueError`**
+  - `_prepare_input_model_matrix()` now raises a deterministic `ValueError`
+    when the input sample has zero rows, instead of relying on an assertion.
+  - This aligns runtime behavior with documented exceptions and avoids
+    optimization-dependent assert behavior.
 
 ## Tests
 
@@ -78,6 +87,8 @@ hide_title: true
   - Added assertions that validate all three expected warnings are emitted when inferring an `id` column and default weights, including ID guessing, ID string casting, and automatic weight creation.
 - **Added focused unit coverage for IPW helpers**
   - Added tests for `link_transform()`, and `calc_dev()` to validate behavior for extreme probabilities, and finite 10-fold deviance summaries.
+- **Expanded ASCII plot dispatcher edge-case coverage**
+  - Added tests for `ascii_plot_dist` with `comparative=False` to verify direct dispatch to `ascii_plot_hist` and mixed categorical+numeric routing in a single call.
 
 # 0.16.0 (2026-02-09)
 

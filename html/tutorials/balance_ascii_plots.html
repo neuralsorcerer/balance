@@ -3,7 +3,7 @@
 <html lang="en">
 <head><meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>balance_quickstart_poststratify</title><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+<title>balance_ascii_plots</title><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
 <style type="text/css">
     pre { line-height: 125%; }
 td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
@@ -7796,28 +7796,40 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=84b1d98f">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h1 id="balance-Quickstart-(post-stratify):-Matching-known-cell-totals">balance Quickstart (post-stratify): Matching known cell totals<a class="anchor-link" href="#balance-Quickstart-(post-stratify):-Matching-known-cell-totals">¶</a></h1><p>This notebook demonstrates how to apply post-stratification with the <code>balance</code> package. We start by matching a single marginal distribution and then show how the same function can match the joint distribution of two variables without falling back to raking.</p>
+<h1 id="ASCII-Plots-Tutorial">ASCII Plots Tutorial<a class="anchor-link" href="#ASCII-Plots-Tutorial">¶</a></h1><p>This tutorial demonstrates the text-based plotting functions in <code>balance</code>.
+ASCII plots are useful in terminals, CI logs, notebooks with limited rendering,
+or anywhere you want a quick visual comparison without a graphical backend.</p>
+<p>We cover:</p>
+<ol>
+<li><strong>Grouped barplots</strong> (<code>ascii_plot_bar</code>) for categorical variables</li>
+<li><strong>Grouped histograms</strong> (<code>ascii_plot_hist</code>) for numeric variables</li>
+<li><strong>Comparative histograms</strong> (<code>ascii_comparative_hist</code>) with baseline-relative rendering</li>
+<li><strong><code>ascii_plot_dist</code></strong> — the all-in-one dispatcher</li>
+<li>Using <code>library="balance"</code> with the <code>.covars().plot()</code> API</li>
+<li>Switching to grouped-bar histograms with <code>comparative=False</code></li>
+</ol>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=977acc22">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="1.-Load-simulated-data">1. Load simulated data<a class="anchor-link" href="#1.-Load-simulated-data">¶</a></h2><p>The helper :func:<code>balance.load_data</code> function returns a pair of simulated datasets: the target population and a biased sample. We'll use unit design weights in this tutorial so the weighted sums can be interpreted as counts.</p>
+<h2 id="Setup">Setup<a class="anchor-link" href="#Setup">¶</a></h2><p>Load the toy dataset and run an IPW adjustment so we have three datasets
+to compare: unadjusted sample, adjusted sample, and target population.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=f3284a72">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7825,12 +7837,17 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">balance</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_data</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">balance.weighting_methods.poststratify</span><span class="w"> </span><span class="kn">import</span> <span class="n">poststratify</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<div class="highlight hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">"ignore"</span><span class="p">)</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">balance</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sample</span><span class="p">,</span> <span class="n">load_data</span>
 
 <span class="n">target_df</span><span class="p">,</span> <span class="n">sample_df</span> <span class="o">=</span> <span class="n">load_data</span><span class="p">()</span>
-<span class="n">target_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+
+<span class="n">sample</span> <span class="o">=</span> <span class="n">Sample</span><span class="o">.</span><span class="n">from_frame</span><span class="p">(</span><span class="n">sample_df</span><span class="p">,</span> <span class="n">outcome_columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"happiness"</span><span class="p">])</span>
+<span class="n">target</span> <span class="o">=</span> <span class="n">Sample</span><span class="o">.</span><span class="n">from_frame</span><span class="p">(</span><span class="n">target_df</span><span class="p">,</span> <span class="n">outcome_columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"happiness"</span><span class="p">])</span>
+<span class="n">sample_with_target</span> <span class="o">=</span> <span class="n">sample</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+<span class="n">adjusted</span> <span class="o">=</span> <span class="n">sample_with_target</span><span class="o">.</span><span class="n">adjust</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
@@ -7843,7 +7860,21 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-03-02 13:56:19,658) [__init__/&lt;module&gt; (line 72)]: Using balance version 0.16.1
+<pre>INFO (2026-03-02 14:02:06,992) [__init__/&lt;module&gt; (line 72)]: Using balance version 0.16.1
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>WARNING (2026-03-02 14:02:07,182) [input_validation/guess_id_column (line 337)]: Guessed id column name id for the data
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>WARNING (2026-03-02 14:02:07,193) [sample_class/from_frame (line 549)]: No weights passed. Adding a 'weight' column and setting all values to 1
 </pre>
 </div>
 </div>
@@ -7864,94 +7895,133 @@ balance (Version 0.16.1) loaded:
 </pre>
 </div>
 </div>
-<div class="jp-OutputArea-child jp-OutputArea-executeResult">
-<div class="jp-OutputPrompt jp-OutputArea-prompt">Out[1]:</div>
-<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/html" tabindex="0">
-<div>
-<style scoped="">
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-<thead>
-<tr style="text-align: right;">
-<th></th>
-<th>id</th>
-<th>gender</th>
-<th>age_group</th>
-<th>income</th>
-<th>happiness</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<th>0</th>
-<td>100000</td>
-<td>Male</td>
-<td>45+</td>
-<td>10.183951</td>
-<td>61.706333</td>
-</tr>
-<tr>
-<th>1</th>
-<td>100001</td>
-<td>Male</td>
-<td>45+</td>
-<td>6.036858</td>
-<td>79.123670</td>
-</tr>
-<tr>
-<th>2</th>
-<td>100002</td>
-<td>Male</td>
-<td>35-44</td>
-<td>5.226629</td>
-<td>44.206949</td>
-</tr>
-<tr>
-<th>3</th>
-<td>100003</td>
-<td>NaN</td>
-<td>45+</td>
-<td>5.752147</td>
-<td>83.985716</td>
-</tr>
-<tr>
-<th>4</th>
-<td>100004</td>
-<td>NaN</td>
-<td>25-34</td>
-<td>4.837484</td>
-<td>49.339713</td>
-</tr>
-</tbody>
-</table>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>WARNING (2026-03-02 14:02:07,206) [input_validation/guess_id_column (line 337)]: Guessed id column name id for the data
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>WARNING (2026-03-02 14:02:07,221) [sample_class/from_frame (line 549)]: No weights passed. Adding a 'weight' column and setting all values to 1
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-03-02 14:02:07,230) [ipw/ipw (line 703)]: Starting ipw function
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-03-02 14:02:07,233) [adjustment/apply_transformations (line 433)]: Adding the variables: []
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-03-02 14:02:07,234) [adjustment/apply_transformations (line 434)]: Transforming the variables: ['gender', 'age_group', 'income']
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-03-02 14:02:07,242) [adjustment/apply_transformations (line 469)]: Final variables in output: ['gender', 'age_group', 'income']
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-03-02 14:02:07,251) [ipw/ipw (line 738)]: Building model matrix
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-03-02 14:02:07,364) [ipw/ipw (line 764)]: The formula used to build the model matrix: ['income + gender + age_group + _is_na_gender']
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-03-02 14:02:07,364) [ipw/ipw (line 767)]: The number of columns in the model matrix: 16
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-03-02 14:02:07,365) [ipw/ipw (line 768)]: The number of rows in the model matrix: 11000
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-03-02 14:02:24,203) [ipw/ipw (line 990)]: Done with sklearn
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-03-02 14:02:24,204) [ipw/ipw (line 992)]: max_de: None
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-03-02 14:02:24,205) [ipw/ipw (line 1014)]: Starting model selection
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-03-02 14:02:24,209) [ipw/ipw (line 1047)]: Chosen lambda: 0.041158338186664825
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-03-02 14:02:24,210) [ipw/ipw (line 1065)]: Proportion null deviance explained 0.172637976731583
+</pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=9bc01d97">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="2.-Post-stratify-on-a-single-variable">2. Post-stratify on a single variable<a class="anchor-link" href="#2.-Post-stratify-on-a-single-variable">¶</a></h2><p>We first adjust the sample so that its gender distribution matches the target population. Rows with missing gender are dropped to satisfy the default <code>strict_matching=True</code> requirement that every sample cell be present in the target.</p>
+<h2 id="1.-All-covariates-at-a-glance">1. All covariates at a glance<a class="anchor-link" href="#1.-All-covariates-at-a-glance">¶</a></h2><p>The easiest way to get an ASCII comparison is through the standard <code>.covars().plot()</code>
+API with <code>library="balance"</code>. This automatically classifies each variable as
+categorical or numeric and renders grouped barplots or histograms accordingly.</p>
+<p>The three fill characters distinguish the datasets:</p>
+<ul>
+<li><code>█</code> = <strong>sample</strong> (unadjusted)</li>
+<li><code>▒</code> = <strong>adjusted</strong> (after IPW)</li>
+<li><code>▐</code> = <strong>population</strong> (target)</li>
+</ul>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=540b8406">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7959,25 +8029,7 @@ balance (Version 0.16.1) loaded:
 <div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">sample_gender</span> <span class="o">=</span> <span class="n">sample_df</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">"gender"</span><span class="p">])</span>
-<span class="n">target_gender</span> <span class="o">=</span> <span class="n">target_df</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">"gender"</span><span class="p">])</span>
-
-<span class="n">gender_result</span> <span class="o">=</span> <span class="n">poststratify</span><span class="p">(</span>
-    <span class="n">sample_df</span><span class="o">=</span><span class="n">sample_gender</span><span class="p">[[</span><span class="s2">"gender"</span><span class="p">]],</span>
-    <span class="n">sample_weights</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">sample_gender</span><span class="o">.</span><span class="n">index</span><span class="p">),</span>
-    <span class="n">target_df</span><span class="o">=</span><span class="n">target_gender</span><span class="p">[[</span><span class="s2">"gender"</span><span class="p">]],</span>
-    <span class="n">target_weights</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">target_gender</span><span class="o">.</span><span class="n">index</span><span class="p">),</span>
-<span class="p">)</span>
-
-<span class="n">gender_weights</span> <span class="o">=</span> <span class="n">sample_gender</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">weight</span><span class="o">=</span><span class="n">gender_result</span><span class="p">[</span><span class="s2">"weight"</span><span class="p">])</span>
-<span class="n">gender_summary</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
-    <span class="p">[</span>
-        <span class="n">gender_weights</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"gender"</span><span class="p">)[</span><span class="s2">"weight"</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">"weighted_sample"</span><span class="p">),</span>
-        <span class="n">target_gender</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"gender"</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">"target_population"</span><span class="p">),</span>
-    <span class="p">],</span>
-    <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="n">gender_summary</span>
+<div class="highlight hl-python"><pre><span></span><span class="n">adjusted</span><span class="o">.</span><span class="n">covars</span><span class="p">()</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">library</span><span class="o">=</span><span class="s2">"balance"</span><span class="p">);</span>
 </pre></div>
 </div>
 </div>
@@ -7989,96 +8041,86 @@ balance (Version 0.16.1) loaded:
 <div class="jp-OutputArea jp-Cell-outputArea">
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-03-02 13:56:19,696) [adjustment/apply_transformations (line 433)]: Adding the variables: []
-</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-03-02 13:56:19,697) [adjustment/apply_transformations (line 434)]: Transforming the variables: ['gender']
-</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-03-02 13:56:19,699) [adjustment/apply_transformations (line 469)]: Final variables in output: ['gender']
-</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child jp-OutputArea-executeResult">
-<div class="jp-OutputPrompt jp-OutputArea-prompt">Out[2]:</div>
-<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/html" tabindex="0">
-<div>
-<style scoped="">
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>=== gender (categorical) ===
 
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
+Category | population  adjusted  sample
+         |
+Female   | ██████████████████████████████████████████ (50.0%)
+         | ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ (44.5%)
+         | ▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐ (29.4%)
 
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-<thead>
-<tr style="text-align: right;">
-<th></th>
-<th>weighted_sample</th>
-<th>target_population</th>
-</tr>
-<tr>
-<th>gender</th>
-<th></th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<th>Female</th>
-<td>4551.0</td>
-<td>4551</td>
-</tr>
-<tr>
-<th>Male</th>
-<td>4551.0</td>
-<td>4551</td>
-</tr>
-</tbody>
-</table>
+Male     | ██████████████████████████████████████████ (50.0%)
+         | ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ (55.5%)
+         | ▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐ (70.6%)
+
+Legend: █ population  ▒ adjusted  ▐ sample
+Bar lengths are proportional to weighted frequency within each dataset.
+
+=== age_group (categorical) ===
+
+Category | population  adjusted  sample
+         |
+18-24    | ████████████████████████ (19.7%)
+         | ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ (28.1%)
+         | ▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐ (49.1%)
+
+25-34    | ████████████████████████████████████ (29.7%)
+         | ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ (30.7%)
+         | ▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐ (30.0%)
+
+35-44    | █████████████████████████████████████ (29.9%)
+         | ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ (27.4%)
+         | ▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐ (15.6%)
+
+45+      | █████████████████████████ (20.6%)
+         | ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ (13.8%)
+         | ▐▐▐▐▐▐ (5.3%)
+
+Legend: █ population  ▒ adjusted  ▐ sample
+Bar lengths are proportional to weighted frequency within each dataset.
+
+=== income (numeric, comparative) ===
+
+Range            | population (%) | adjusted (%)   | sample (%)       
+----------------------------------------------------------------------
+[0.00, 8.57)     | ████████ 49.0  | ████████▒ 54.8 | ████████▒▒▒▒ 73.2
+[8.57, 17.14)    | ████ 23.1      | ████ 26.3      | ███] 19.2        
+[17.14, 25.71)   | ██ 13.2        | ██ 12.3        | █] 5.3           
+[25.71, 34.28)   | █ 7.3          | █ 3.9          | ] 1.6            
+[34.28, 42.85)   | █ 3.9          | ] 1.5          | ] 0.4            
+[42.85, 51.41)   | 1.8            | 0.2            | 0.1              
+[51.41, 59.98)   | 0.9            | 1.0            | 0.2              
+[59.98, 68.55)   | 0.4            | 0.0            | 0.0              
+[68.55, 77.12)   | 0.2            | 0.0            | 0.0              
+[77.12, 85.69)   | 0.1            | 0.0            | 0.0              
+[85.69, 94.26)   | 0.0            | 0.0            | 0.0              
+[94.26, 102.83)  | 0.0            | 0.0            | 0.0              
+[102.83, 111.40) | 0.0            | 0.0            | 0.0              
+[111.40, 119.97) | 0.0            | 0.0            | 0.0              
+[119.97, 128.54] | 0.0            | 0.0            | 0.0              
+----------------------------------------------------------------------
+Total            | 100.0          | 100.0          | 100.0            
+
+Key: █ = shared with population, ▒ = excess,    ] = deficit
+</pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c0974546">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>The weighted sample counts now reproduce the target population counts. Dividing by the column totals would show that the sample proportions also match the target proportions.</p>
+<h2 id="2.-Category-spacing">2. Category spacing<a class="anchor-link" href="#2.-Category-spacing">¶</a></h2><p>By default, barplots insert a blank line between categories for readability.
+You can disable this with <code>separate_categories=False</code> to get a more compact view.</p>
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1d498223">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="3.-Post-stratify-on-the-joint-distribution-of-two-variables">3. Post-stratify on the joint distribution of two variables<a class="anchor-link" href="#3.-Post-stratify-on-the-joint-distribution-of-two-variables">¶</a></h2><p>Post-stratification can use multiple variables simultaneously. In that case the function computes a weight per <em>cell</em> defined by the unique combination of those variables. This is different from raking, which iteratively matches the marginals of each variable.</p>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=e7bdeacf">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8086,26 +8128,11 @@ balance (Version 0.16.1) loaded:
 <div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">covariates</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"gender"</span><span class="p">,</span> <span class="s2">"age_group"</span><span class="p">]</span>
-<span class="n">sample_cells</span> <span class="o">=</span> <span class="n">sample_df</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="n">covariates</span><span class="p">)</span>
-<span class="n">target_cells</span> <span class="o">=</span> <span class="n">target_df</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="n">covariates</span><span class="p">)</span>
-
-<span class="n">joint_result</span> <span class="o">=</span> <span class="n">poststratify</span><span class="p">(</span>
-    <span class="n">sample_df</span><span class="o">=</span><span class="n">sample_cells</span><span class="p">[</span><span class="n">covariates</span><span class="p">],</span>
-    <span class="n">sample_weights</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">sample_cells</span><span class="o">.</span><span class="n">index</span><span class="p">),</span>
-    <span class="n">target_df</span><span class="o">=</span><span class="n">target_cells</span><span class="p">[</span><span class="n">covariates</span><span class="p">],</span>
-    <span class="n">target_weights</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">target_cells</span><span class="o">.</span><span class="n">index</span><span class="p">),</span>
-<span class="p">)</span>
-
-<span class="n">joint_weights</span> <span class="o">=</span> <span class="n">sample_cells</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">weight</span><span class="o">=</span><span class="n">joint_result</span><span class="p">[</span><span class="s2">"weight"</span><span class="p">])</span>
-<span class="n">joint_summary</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
-    <span class="p">[</span>
-        <span class="n">joint_weights</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">covariates</span><span class="p">)[</span><span class="s2">"weight"</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">"weighted_sample"</span><span class="p">),</span>
-        <span class="n">target_cells</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">covariates</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">"target_population"</span><span class="p">),</span>
-    <span class="p">],</span>
-    <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="n">joint_summary</span>
+<div class="highlight hl-python"><pre><span></span><span class="c1"># Compact view (no blank lines between categories)</span>
+<span class="n">adjusted</span><span class="o">.</span><span class="n">covars</span><span class="p">()</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <span class="n">library</span><span class="o">=</span><span class="s2">"balance"</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="p">[</span><span class="s2">"gender"</span><span class="p">],</span>
+    <span class="n">separate_categories</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">);</span>
 </pre></div>
 </div>
 </div>
@@ -8117,115 +8144,510 @@ balance (Version 0.16.1) loaded:
 <div class="jp-OutputArea jp-Cell-outputArea">
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-03-02 13:56:19,725) [adjustment/apply_transformations (line 433)]: Adding the variables: []
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>=== gender (categorical) ===
+
+Category | population  adjusted  sample
+         |
+Female   | ██████████████████████████████████████████ (50.0%)
+         | ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ (44.5%)
+         | ▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐ (29.4%)
+Male     | ██████████████████████████████████████████ (50.0%)
+         | ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ (55.5%)
+         | ▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐ (70.6%)
+
+Legend: █ population  ▒ adjusted  ▐ sample
+Bar lengths are proportional to weighted frequency within each dataset.
+
 </pre>
 </div>
 </div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-python"><pre><span></span><span class="c1"># Default view (blank lines between categories)</span>
+<span class="n">adjusted</span><span class="o">.</span><span class="n">covars</span><span class="p">()</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <span class="n">library</span><span class="o">=</span><span class="s2">"balance"</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="p">[</span><span class="s2">"gender"</span><span class="p">],</span>
+<span class="p">);</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-03-02 13:56:19,726) [adjustment/apply_transformations (line 434)]: Transforming the variables: ['gender', 'age_group']
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>=== gender (categorical) ===
+
+Category | population  adjusted  sample
+         |
+Female   | ██████████████████████████████████████████ (50.0%)
+         | ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ (44.5%)
+         | ▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐ (29.4%)
+
+Male     | ██████████████████████████████████████████ (50.0%)
+         | ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ (55.5%)
+         | ▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐ (70.6%)
+
+Legend: █ population  ▒ adjusted  ▐ sample
+Bar lengths are proportional to weighted frequency within each dataset.
+
 </pre>
 </div>
 </div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-03-02 13:56:19,731) [adjustment/apply_transformations (line 469)]: Final variables in output: ['gender', 'age_group']
-</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child jp-OutputArea-executeResult">
-<div class="jp-OutputPrompt jp-OutputArea-prompt">Out[3]:</div>
-<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/html" tabindex="0">
-<div>
-<style scoped="">
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-<thead>
-<tr style="text-align: right;">
-<th></th>
-<th></th>
-<th>weighted_sample</th>
-<th>target_population</th>
-</tr>
-<tr>
-<th>gender</th>
-<th>age_group</th>
-<th></th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<th rowspan="4" valign="top">Female</th>
-<th>18-24</th>
-<td>876.0</td>
-<td>876</td>
-</tr>
-<tr>
-<th>25-34</th>
-<td>1360.0</td>
-<td>1360</td>
-</tr>
-<tr>
-<th>35-44</th>
-<td>1370.0</td>
-<td>1370</td>
-</tr>
-<tr>
-<th>45+</th>
-<td>945.0</td>
-<td>945</td>
-</tr>
-<tr>
-<th rowspan="4" valign="top">Male</th>
-<th>18-24</th>
-<td>905.0</td>
-<td>905</td>
-</tr>
-<tr>
-<th>25-34</th>
-<td>1355.0</td>
-<td>1355</td>
-</tr>
-<tr>
-<th>35-44</th>
-<td>1347.0</td>
-<td>1347</td>
-</tr>
-<tr>
-<th>45+</th>
-<td>944.0</td>
-<td>944</td>
-</tr>
-</tbody>
-</table>
 </div>
 </div>
 </div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=28424d53">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Each row corresponds to a unique combination of gender and age group. The equality between the two columns confirms that <code>poststratify</code> matched the full joint distribution without reverting to raking.</p>
+<h2 id="3.-Focusing-on-a-single-variable">3. Focusing on a single variable<a class="anchor-link" href="#3.-Focusing-on-a-single-variable">¶</a></h2><p>Pass <code>variables=["income"]</code> to plot just one covariate. For numeric variables
+the output is a grouped histogram where each bin shows the weighted proportion
+for the unadjusted sample, adjusted sample, and target population.</p>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-python"><pre><span></span><span class="n">adjusted</span><span class="o">.</span><span class="n">covars</span><span class="p">()</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <span class="n">library</span><span class="o">=</span><span class="s2">"balance"</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="p">[</span><span class="s2">"income"</span><span class="p">],</span>
+<span class="p">);</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>=== income (numeric, comparative) ===
+
+Range            | population (%) | adjusted (%)   | sample (%)       
+----------------------------------------------------------------------
+[0.00, 8.57)     | ████████ 49.0  | ████████▒ 54.8 | ████████▒▒▒▒ 73.2
+[8.57, 17.14)    | ████ 23.1      | ████ 26.3      | ███] 19.2        
+[17.14, 25.71)   | ██ 13.2        | ██ 12.3        | █] 5.3           
+[25.71, 34.28)   | █ 7.3          | █ 3.9          | ] 1.6            
+[34.28, 42.85)   | █ 3.9          | ] 1.5          | ] 0.4            
+[42.85, 51.41)   | 1.8            | 0.2            | 0.1              
+[51.41, 59.98)   | 0.9            | 1.0            | 0.2              
+[59.98, 68.55)   | 0.4            | 0.0            | 0.0              
+[68.55, 77.12)   | 0.2            | 0.0            | 0.0              
+[77.12, 85.69)   | 0.1            | 0.0            | 0.0              
+[85.69, 94.26)   | 0.0            | 0.0            | 0.0              
+[94.26, 102.83)  | 0.0            | 0.0            | 0.0              
+[102.83, 111.40) | 0.0            | 0.0            | 0.0              
+[111.40, 119.97) | 0.0            | 0.0            | 0.0              
+[119.97, 128.54] | 0.0            | 0.0            | 0.0              
+----------------------------------------------------------------------
+Total            | 100.0          | 100.0          | 100.0            
+
+Key: █ = shared with population, ▒ = excess,    ] = deficit
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h2 id="4.-Grouped-histogram-(ascii_plot_hist)">4. Grouped histogram (<code>ascii_plot_hist</code>)<a class="anchor-link" href="#4.-Grouped-histogram-(ascii_plot_hist)">¶</a></h2><p><code>ascii_plot_hist</code> provides a side-by-side view: each dataset gets its own bar
+(with a distinct fill character) so you can compare how mass is distributed
+across bins. Bar lengths are proportional to weighted frequency within each dataset.</p>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [6]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">balance.stats_and_plots.ascii_plots</span><span class="w"> </span><span class="kn">import</span> <span class="n">ascii_plot_hist</span>
+
+<span class="n">dfs</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">{</span><span class="s2">"df"</span><span class="p">:</span> <span class="n">target_df</span><span class="p">,</span> <span class="s2">"weight"</span><span class="p">:</span> <span class="kc">None</span><span class="p">},</span>
+    <span class="p">{</span><span class="s2">"df"</span><span class="p">:</span> <span class="n">sample_df</span><span class="p">,</span> <span class="s2">"weight"</span><span class="p">:</span> <span class="kc">None</span><span class="p">},</span>
+<span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ascii_plot_hist</span><span class="p">(</span>
+    <span class="n">dfs</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">"Target"</span><span class="p">,</span> <span class="s2">"Sample"</span><span class="p">],</span> <span class="n">column</span><span class="o">=</span><span class="s2">"income"</span><span class="p">,</span>
+<span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>=== income (numeric) ===
+
+Bin              | Target  Sample
+                 |
+[0.00, 8.57)     | ███████████████████████████████████ (49.0%)
+                 | ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ (73.2%)
+[8.57, 17.14)    | ████████████████ (23.1%)
+                 | ▒▒▒▒▒▒▒▒▒▒▒▒▒▒ (19.2%)
+[17.14, 25.71)   | █████████ (13.2%)
+                 | ▒▒▒▒ (5.3%)
+[25.71, 34.28)   | █████ (7.3%)
+                 | ▒ (1.6%)
+[34.28, 42.85)   | ███ (3.9%)
+                 | . (0.4%)
+[42.85, 51.41)   | █ (1.8%)
+                 | . (0.1%)
+[51.41, 59.98)   | █ (0.9%)
+                 | . (0.2%)
+[59.98, 68.55)   | . (0.4%)
+                 |  (0.0%)
+[68.55, 77.12)   | . (0.2%)
+                 |  (0.0%)
+[77.12, 85.69)   | . (0.1%)
+                 |  (0.0%)
+[85.69, 94.26)   | . (0.0%)
+                 |  (0.0%)
+[94.26, 102.83)  | . (0.0%)
+                 |  (0.0%)
+[102.83, 111.40) |  (0.0%)
+                 |  (0.0%)
+[111.40, 119.97) |  (0.0%)
+                 |  (0.0%)
+[119.97, 128.54] | . (0.0%)
+                 |  (0.0%)
+
+Legend: █ Target  ▒ Sample
+Bar lengths are proportional to weighted frequency within each dataset.
+
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h2 id="5.-Comparative-histogram-(ascii_comparative_hist)">5. Comparative histogram (<code>ascii_comparative_hist</code>)<a class="anchor-link" href="#5.-Comparative-histogram-(ascii_comparative_hist)">¶</a></h2><p>When you want to see <em>how</em> a dataset differs from a baseline,
+<code>ascii_comparative_hist</code> renders each bin relative to the first dataset:</p>
+<ul>
+<li><code>█</code> (solid) = the proportion shared with the baseline</li>
+<li><code>▒</code> (shaded) = excess beyond the baseline</li>
+<li><code>   ]</code> (right bracket) = deficit relative to the baseline</li>
+</ul>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [7]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">balance.stats_and_plots.ascii_plots</span><span class="w"> </span><span class="kn">import</span> <span class="n">ascii_comparative_hist</span>
+
+<span class="c1"># Target (baseline) vs unadjusted sample</span>
+<span class="n">dfs</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">{</span><span class="s2">"df"</span><span class="p">:</span> <span class="n">target_df</span><span class="p">,</span> <span class="s2">"weight"</span><span class="p">:</span> <span class="kc">None</span><span class="p">},</span>
+    <span class="p">{</span><span class="s2">"df"</span><span class="p">:</span> <span class="n">sample_df</span><span class="p">,</span> <span class="s2">"weight"</span><span class="p">:</span> <span class="kc">None</span><span class="p">},</span>
+<span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ascii_comparative_hist</span><span class="p">(</span>
+    <span class="n">dfs</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">"Target"</span><span class="p">,</span> <span class="s2">"Sample"</span><span class="p">],</span> <span class="n">column</span><span class="o">=</span><span class="s2">"income"</span><span class="p">,</span>
+<span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>=== income (numeric, comparative) ===
+
+Range            | Target (%)           | Sample (%)                 
+---------------------------------------------------------------------
+[0.00, 8.57)     | ███████████████ 49.0 | ███████████████▒▒▒▒▒▒▒ 73.2
+[8.57, 17.14)    | ███████ 23.1         | ██████] 19.2               
+[17.14, 25.71)   | ████ 13.2            | ██ ] 5.3                   
+[25.71, 34.28)   | ██ 7.3               |  ] 1.6                     
+[34.28, 42.85)   | █ 3.9                | ] 0.4                      
+[42.85, 51.41)   | █ 1.8                | ] 0.1                      
+[51.41, 59.98)   | 0.9                  | 0.2                        
+[59.98, 68.55)   | 0.4                  | 0.0                        
+[68.55, 77.12)   | 0.2                  | 0.0                        
+[77.12, 85.69)   | 0.1                  | 0.0                        
+[85.69, 94.26)   | 0.0                  | 0.0                        
+[94.26, 102.83)  | 0.0                  | 0.0                        
+[102.83, 111.40) | 0.0                  | 0.0                        
+[111.40, 119.97) | 0.0                  | 0.0                        
+[119.97, 128.54] | 0.0                  | 0.0                        
+---------------------------------------------------------------------
+Total            | 100.0                | 100.0                      
+
+Key: █ = shared with Target, ▒ = excess,    ] = deficit
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h3 id="Three-way-comparative-histogram">Three-way comparative histogram<a class="anchor-link" href="#Three-way-comparative-histogram">¶</a></h3><p>You can also compare the target, unadjusted, and adjusted distributions
+side by side. Here the target is the baseline, so <code>▒</code> shows where the
+other datasets have <strong>more</strong> mass and <code>   ]</code> shows where they have <strong>less</strong>.</p>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [8]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-python"><pre><span></span><span class="n">dfs</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">{</span><span class="s2">"df"</span><span class="p">:</span> <span class="n">target</span><span class="o">.</span><span class="n">covars</span><span class="p">()</span><span class="o">.</span><span class="n">df</span><span class="p">,</span> <span class="s2">"weight"</span><span class="p">:</span> <span class="n">target</span><span class="o">.</span><span class="n">weight_column</span><span class="p">},</span>
+    <span class="p">{</span><span class="s2">"df"</span><span class="p">:</span> <span class="n">sample_with_target</span><span class="o">.</span><span class="n">covars</span><span class="p">()</span><span class="o">.</span><span class="n">df</span><span class="p">,</span> <span class="s2">"weight"</span><span class="p">:</span> <span class="n">sample_with_target</span><span class="o">.</span><span class="n">weight_column</span><span class="p">},</span>
+    <span class="p">{</span><span class="s2">"df"</span><span class="p">:</span> <span class="n">adjusted</span><span class="o">.</span><span class="n">covars</span><span class="p">()</span><span class="o">.</span><span class="n">df</span><span class="p">,</span> <span class="s2">"weight"</span><span class="p">:</span> <span class="n">adjusted</span><span class="o">.</span><span class="n">weight_column</span><span class="p">},</span>
+<span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ascii_comparative_hist</span><span class="p">(</span>
+    <span class="n">dfs</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">"Target"</span><span class="p">,</span> <span class="s2">"Unadjusted"</span><span class="p">,</span> <span class="s2">"Adjusted"</span><span class="p">],</span>
+    <span class="n">column</span><span class="o">=</span><span class="s2">"income"</span><span class="p">,</span>
+<span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>=== income (numeric, comparative) ===
+
+Range            | Target (%)    | Unadjusted (%)    | Adjusted (%)  
+---------------------------------------------------------------------
+[0.00, 8.57)     | ████████ 49.0 | ████████▒▒▒▒ 73.2 | ████████▒ 54.8
+[8.57, 17.14)    | ████ 23.1     | ███] 19.2         | ████ 26.3     
+[17.14, 25.71)   | ██ 13.2       | █] 5.3            | ██ 12.3       
+[25.71, 34.28)   | █ 7.3         | ] 1.6             | █ 3.9         
+[34.28, 42.85)   | █ 3.9         | ] 0.4             | ] 1.5         
+[42.85, 51.41)   | 1.8           | 0.1               | 0.2           
+[51.41, 59.98)   | 0.9           | 0.2               | 1.0           
+[59.98, 68.55)   | 0.4           | 0.0               | 0.0           
+[68.55, 77.12)   | 0.2           | 0.0               | 0.0           
+[77.12, 85.69)   | 0.1           | 0.0               | 0.0           
+[85.69, 94.26)   | 0.0           | 0.0               | 0.0           
+[94.26, 102.83)  | 0.0           | 0.0               | 0.0           
+[102.83, 111.40) | 0.0           | 0.0               | 0.0           
+[111.40, 119.97) | 0.0           | 0.0               | 0.0           
+[119.97, 128.54] | 0.0           | 0.0               | 0.0           
+---------------------------------------------------------------------
+Total            | 100.0         | 100.0             | 100.0         
+
+Key: █ = shared with Target, ▒ = excess,    ] = deficit
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h2 id="6.-Grouped-histograms-via-comparative=False">6. Grouped histograms via <code>comparative=False</code><a class="anchor-link" href="#6.-Grouped-histograms-via-comparative=False">¶</a></h2><p>By default, <code>ascii_plot_dist</code> (and <code>.covars().plot(library="balance")</code>) renders
+numeric variables as comparative histograms showing excess/deficit relative to a
+baseline. If you prefer the simpler grouped-bar style (same layout used for
+categorical variables), pass <code>comparative=False</code>.</p>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [9]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-python"><pre><span></span><span class="c1"># Comparative mode (default) — numeric variables show excess/deficit vs baseline</span>
+<span class="n">adjusted</span><span class="o">.</span><span class="n">covars</span><span class="p">()</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <span class="n">library</span><span class="o">=</span><span class="s2">"balance"</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="p">[</span><span class="s2">"income"</span><span class="p">],</span>
+<span class="p">);</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>=== income (numeric, comparative) ===
+
+Range            | population (%) | adjusted (%)   | sample (%)       
+----------------------------------------------------------------------
+[0.00, 8.57)     | ████████ 49.0  | ████████▒ 54.8 | ████████▒▒▒▒ 73.2
+[8.57, 17.14)    | ████ 23.1      | ████ 26.3      | ███] 19.2        
+[17.14, 25.71)   | ██ 13.2        | ██ 12.3        | █] 5.3           
+[25.71, 34.28)   | █ 7.3          | █ 3.9          | ] 1.6            
+[34.28, 42.85)   | █ 3.9          | ] 1.5          | ] 0.4            
+[42.85, 51.41)   | 1.8            | 0.2            | 0.1              
+[51.41, 59.98)   | 0.9            | 1.0            | 0.2              
+[59.98, 68.55)   | 0.4            | 0.0            | 0.0              
+[68.55, 77.12)   | 0.2            | 0.0            | 0.0              
+[77.12, 85.69)   | 0.1            | 0.0            | 0.0              
+[85.69, 94.26)   | 0.0            | 0.0            | 0.0              
+[94.26, 102.83)  | 0.0            | 0.0            | 0.0              
+[102.83, 111.40) | 0.0            | 0.0            | 0.0              
+[111.40, 119.97) | 0.0            | 0.0            | 0.0              
+[119.97, 128.54] | 0.0            | 0.0            | 0.0              
+----------------------------------------------------------------------
+Total            | 100.0          | 100.0          | 100.0            
+
+Key: █ = shared with population, ▒ = excess,    ] = deficit
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [10]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-python"><pre><span></span><span class="c1"># Grouped-bar mode — numeric variables use the same bar style as categorical</span>
+<span class="n">adjusted</span><span class="o">.</span><span class="n">covars</span><span class="p">()</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <span class="n">library</span><span class="o">=</span><span class="s2">"balance"</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="p">[</span><span class="s2">"income"</span><span class="p">],</span>
+    <span class="n">comparative</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">);</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>=== income (numeric) ===
+
+Bin              | population  adjusted  sample
+                 |
+[0.00, 8.57)     | ███████████████████████████████████ (49.0%)
+                 | ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ (54.8%)
+                 | ▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐▐ (73.2%)
+[8.57, 17.14)    | ████████████████ (23.1%)
+                 | ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ (26.3%)
+                 | ▐▐▐▐▐▐▐▐▐▐▐▐▐▐ (19.2%)
+[17.14, 25.71)   | █████████ (13.2%)
+                 | ▒▒▒▒▒▒▒▒▒ (12.3%)
+                 | ▐▐▐▐ (5.3%)
+[25.71, 34.28)   | █████ (7.3%)
+                 | ▒▒▒ (3.9%)
+                 | ▐ (1.6%)
+[34.28, 42.85)   | ███ (3.9%)
+                 | ▒ (1.5%)
+                 | . (0.4%)
+[42.85, 51.41)   | █ (1.8%)
+                 | . (0.2%)
+                 | . (0.1%)
+[51.41, 59.98)   | █ (0.9%)
+                 | ▒ (1.0%)
+                 | . (0.2%)
+[59.98, 68.55)   | . (0.4%)
+                 |  (0.0%)
+                 |  (0.0%)
+[68.55, 77.12)   | . (0.2%)
+                 |  (0.0%)
+                 |  (0.0%)
+[77.12, 85.69)   | . (0.1%)
+                 |  (0.0%)
+                 |  (0.0%)
+[85.69, 94.26)   | . (0.0%)
+                 |  (0.0%)
+                 |  (0.0%)
+[94.26, 102.83)  | . (0.0%)
+                 |  (0.0%)
+                 |  (0.0%)
+[102.83, 111.40) |  (0.0%)
+                 |  (0.0%)
+                 |  (0.0%)
+[111.40, 119.97) |  (0.0%)
+                 |  (0.0%)
+                 |  (0.0%)
+[119.97, 128.54] | . (0.0%)
+                 |  (0.0%)
+                 |  (0.0%)
+
+Legend: █ population  ▒ adjusted  ▐ sample
+Bar lengths are proportional to weighted frequency within each dataset.
+
+</pre>
+</div>
 </div>
 </div>
 </div>
