@@ -58,6 +58,42 @@ hide_title: true
   - This makes the weighting API easier to use in sklearn-style workflows while
     preserving existing `adjust(...)` behavior.
 
+- **Added formula support in `poststratify`**
+  - `poststratify(...)` now accepts `formula=` (string or list) as an
+    alternative to `variables=`.
+  - Formula-selected variables are now honored when calling
+    `adjust(method="poststratify", formula=...)` instead of being ignored.
+  - Passing both `variables` and `formula` now raises a clear `ValueError`.
+  - Added strict formula validation to prevent silent misconfiguration
+    (empty/non-string formula entries, unknown variables, and unsupported
+    transformed terms now raise explicit errors).
+  - **Only interaction-style syntax is supported.** The allowed operators
+    are `:` (interaction), `.` (all common columns of sample and target),
+    `-` (exclude a variable), and an optional leading `~` whose LHS is
+    ignored. Examples: `"a:b:c"`, `"."`, `". - c"`, `"y ~ a:b"`, and the
+    list form `["a", "b"]` (which joint-cells all items).
+  - **Additive operators `+` and `*` are explicitly rejected** and raise
+    `ValueError`. Post-stratification defines cells by the *joint*
+    distribution of the selected variables — every variable added only
+    refines the cell grid — so `a + b`, `a * b`, and `a:b` would all
+    produce identical cells. Rejecting `+`/`*` prevents users from
+    silently writing a formula that looks like a main-effects model but
+    is treated as a joint interaction. Use `variables=` or `:` when the
+    intent is a joint cell.
+  - Note on raking: raking operates on *marginals* rather than joint
+    cells, so `+` and `*` are meaningful there. When raking gains its
+    own `formula=` argument, it should accept both additive and
+    interaction terms (unlike poststratify).
+
+- **Improved holdout design-matrix robustness diagnostics**
+  - `build_design_matrix()` now uses a shared NA-indicator token pattern from
+    `data_transformation.py` when parsing formula terms, avoiding duplicated
+    hard-coded regex logic.
+  - In raw-covariate holdout projection mode (`use_model_matrix=False` with
+    `project_to_columns=...`), missing fit-time columns now emit a warning
+    before zero-fill reindexing so unseen holdout features are explicit.
+  - Missing-column warnings are now de-duplicated and preserve request order,
+    preventing redundant repeated column names in diagnostics.
 ## Breaking Changes
 
 - **Changed `id_column` to return the column name (`str`)** on `SampleFrame`,
@@ -87,6 +123,10 @@ hide_title: true
   - synchronization of inherited `SampleFrame` views after
     `Sample.set_as_pre_adjust()`,
   - and weight-column casting when active weight dtype is non-float/float32.
+  - `poststratify(formula=...)` variable selection and adjust-path forwarding,
+    plus argument validation for mutually exclusive `variables` and `formula`.
+  - robust poststratify formula parsing edge cases (interaction syntax,
+    dot expansion, explicit `~` formulas, and validation failures).
 
 # 0.19.0 (2026-04-06)
 
