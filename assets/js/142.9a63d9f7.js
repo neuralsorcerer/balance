@@ -5190,7 +5190,7 @@ function setCacheAdd(value) {
  * @name has
  * @memberOf SetCache
  * @param {*} value The value to search for.
- * @returns {number} Returns `true` if `value` is found, else `false`.
+ * @returns {boolean} Returns `true` if `value` is found, else `false`.
  */
 function setCacheHas(value) {
   return this.__data__.has(value);
@@ -7823,7 +7823,7 @@ function baseOrderBy(collection, iteratees, orders) {
       if ((0,isArray/* default */.A)(iteratee)) {
         return function(value) {
           return (0,_baseGet/* default */.A)(value, iteratee.length === 1 ? iteratee[0] : iteratee);
-        }
+        };
       }
       return iteratee;
     });

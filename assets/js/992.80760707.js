@@ -4685,7 +4685,7 @@ function setCacheAdd(value) {
  * @name has
  * @memberOf SetCache
  * @param {*} value The value to search for.
- * @returns {number} Returns `true` if `value` is found, else `false`.
+ * @returns {boolean} Returns `true` if `value` is found, else `false`.
  */
 function setCacheHas(value) {
   return this.__data__.has(value);
@@ -7250,7 +7250,7 @@ var difference = (0,_baseRest/* default */.A)(function(array, values) {
 ;// ./node_modules/lodash-es/compact.js
 /**
  * Creates an array with all falsey values removed. The values `false`, `null`,
- * `0`, `""`, `undefined`, and `NaN` are falsey.
+ * `0`, `-0`, `0n`, `""`, `undefined`, and `NaN` are falsy.
  *
  * @static
  * @memberOf _
