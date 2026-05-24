@@ -67,6 +67,25 @@ hide_title: true
     transformations at fit time (e.g. wrappers built around stored
     fit-time bin edges) or re-fit rake on the scoring data.
 
+- **Poststratify now supports transfer scoring with `predict_weights(data=...)`.**
+  `BalanceFrame.fit(method="poststratify", store_fit_metadata=True)` stores the
+  transformation origin needed to safely replay fitted cell ratios on a new
+  sample/target pair. `predict_weights(data=holdout_bf)` now applies those
+  stored ratios to the holdout sample's design weights and rescales to the
+  holdout target's total weight. As with rake transfer scoring, models fitted
+  with `transformations="default"` or direct data-dependent helpers such as
+  `quantize` / `fct_lump` are rejected for transfer; pass deterministic
+  transformations explicitly or re-fit poststratify on the scoring data.
+  Models pickled before this release lack the new `transformations_origin`
+  metadata and must be re-fit to use transfer scoring; in-place
+  `predict_weights()` continues to work on older pickles.
+
+- **`BalanceFrame.adjustment_history` records compound adjustment steps.**
+  Sequential `adjust()` / `set_fitted_model()` workflows now keep a chronological,
+  best-effort read-only copy of each adjustment step while preserving `model` as the latest
+  fitted model for backwards compatibility. Baseline resets such as
+  `set_as_pre_adjust()` clear the history together with the current model.
+
 ## Documentation
 
 - **README cross-link to diff-diff.** New "Design-based inference" parent section in [README.md](https://github.com/facebookresearch/balance/blob/main/README.md) introduces the diff-diff integration above the API tour, with a fenced code snippet (canonical `Sample.from_frame` → `set_target` → `adjust` → `fit_did` workflow) and links to the upstream project. The Docusaurus tutorials index and the website landing page (`HomepageFeatures.js`) gain matching cross-references; `.github/copilot-instructions.md` gets a new review-checklist bullet for changes that touch `balance/interop/diff_diff.py`.
@@ -76,6 +95,10 @@ hide_title: true
 - **CI matrix entry for diff-diff integration.** The `Build and Test` workflow now exercises `tests/test_interop_diff_diff.py` on Python 3.12 (against both the minimum supported diff-diff pin `==3.3.0` and the resolved-latest within the `>=3.3.0,<4` band), via new `extras` and `diff-diff-pin` matrix axes restricted to `ubuntu-latest` to avoid runner blowup. The bare-import-balance matrix (no `[did]` extra) continues to cover Python 3.9 / 3.10 / 3.11 / 3.12 / 3.13 / 3.14 across `ubuntu-latest` / `macos-latest` / `windows-latest`. A new `notebook-ci.yml` workflow (added in a separate diff so it lands before the tutorial notebook) nbconvert-executes the BRFSS tutorial on every PR that touches `tutorials/**.ipynb` or `balance/interop/**.py`, and a new `diff-diff-canary.yml` workflow runs **weekly on Mondays at 02:00 EST (07:00 UTC)** against the absolute latest diff-diff release from PyPI, opening (or updating) a GitHub issue tagged `diff-diff-incompatibility` on failure. These guards catch breakage from either side — a balance refactor that perturbs the `weight_column` contract, or a diff-diff release that renames a public symbol — before downstream users hit it. The `coverage.yml` workflow installs with the `[did]` extra so the new tests run under coverage (the matching install update on `deploy-website.yml` lands in the tutorial-notebook diff so the docs build can nbconvert-execute the tutorial from the moment it lands). Internal Buck test-matrix targets (`:balance_tests_pss2`, `:balance_tests_pss3`) gain a direct `fbsource//third-party/pypi/diff-diff:diff-diff` dep so the integration tests can `import diff_diff` under buck2 inside fbcode.
 
 ## Bug Fixes
+
+- **Security: `ws` updated from 8.20.0 to 8.20.1 in website dependencies.**
+  Fixes CVE-2026-45736 (GHSA-58qx-3vcg-4xpx): uninitialized memory disclosure
+  in `websocket.close()` when a `TypedArray` is passed as the reason argument.
 
 - **`rake()` now correctly incorporates per-row design weights in final weights.**
   Previously, every unit in the same raking cell received the same weight
