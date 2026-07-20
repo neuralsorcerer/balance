@@ -59,8 +59,9 @@ Example:
 
 from __future__ import annotations
 
+import contextlib
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Iterator, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -938,6 +939,24 @@ def _percentile_ci(values: np.ndarray, conf_level: float) -> Tuple[float, float]
     return low, high
 
 
+@contextlib.contextmanager
+def _quiet_balance_logging() -> Iterator[None]:
+    """Temporarily raise the top-level ``balance`` logger to ``ERROR``.
+
+    Used to silence the per-replicate fit logs during bootstrap resampling: N
+    refits would otherwise emit N identical INFO/WARNING lines. The one-line
+    summary and the skipped-resample warning are logged outside this context so
+    they still appear.
+    """
+    balance_logger = logging.getLogger("balance")
+    previous = balance_logger.level
+    balance_logger.setLevel(max(previous, logging.ERROR))
+    try:
+        yield
+    finally:
+        balance_logger.setLevel(previous)
+
+
 def bootstrap_outcome_estimate(
     sample_covars: pd.DataFrame,
     outcomes: pd.DataFrame,
@@ -1041,32 +1060,43 @@ def bootstrap_outcome_estimate(
     boot_estimates: Dict[str, List[float]] = {col: [] for col in outcome_columns}
     skipped = 0
 
-    for _ in range(n_bootstrap):
-        idx = rng.integers(0, n_responders, size=n_responders)
-        # Resample rows (and weights) with replacement; fresh positional index
-        # so the design-matrix / weighting-input validators stay aligned.
-        boot_covars = sample_covars.iloc[idx].reset_index(drop=True)
-        boot_outcomes = outcomes.iloc[idx].reset_index(drop=True)
-        boot_weight: pd.Series | None = None
-        if sample_weight is not None:
-            weight_values = np.asarray(sample_weight, dtype=float)[idx]
-            boot_weight = pd.Series(weight_values, index=boot_covars.index)
+    # The N refits below would otherwise each emit the same per-fit INFO/WARNING
+    # lines (a wall of identical logs). Log one summary line, then quiet the
+    # `balance` loggers for the resampling loop only.
+    logger.info(
+        "bootstrap_outcome_estimate: fitting %d bootstrap replicate(s) "
+        "(per-replicate logs suppressed).",
+        n_bootstrap,
+    )
+    with _quiet_balance_logging():
+        for _ in range(n_bootstrap):
+            idx = rng.integers(0, n_responders, size=n_responders)
+            # Resample rows (and weights) with replacement; fresh positional
+            # index so the design-matrix / weighting-input validators stay aligned.
+            boot_covars = sample_covars.iloc[idx].reset_index(drop=True)
+            boot_outcomes = outcomes.iloc[idx].reset_index(drop=True)
+            boot_weight: pd.Series | None = None
+            if sample_weight is not None:
+                weight_values = np.asarray(sample_weight, dtype=float)[idx]
+                boot_weight = pd.Series(weight_values, index=boot_covars.index)
 
-        try:
-            boot_model = fit_outcome_model(
-                boot_covars, boot_outcomes, sample_weight=boot_weight, **fit_kwargs
-            )
-        except ValueError:
-            # A resample can be degenerate (e.g. a single observed class for a
-            # rare binary outcome); skip it rather than aborting the whole CI.
-            skipped += 1
-            continue
-        boot_predictions = predict_outcome(boot_model, target_covars)
-        for col in outcome_columns:
-            mu_star = float(
-                weighted_mean(pd.Series(boot_predictions[col]), target_weight).iloc[0]
-            )
-            boot_estimates[col].append(mu_star)
+            try:
+                boot_model = fit_outcome_model(
+                    boot_covars, boot_outcomes, sample_weight=boot_weight, **fit_kwargs
+                )
+            except ValueError:
+                # A resample can be degenerate (e.g. a single observed class for
+                # a rare binary outcome); skip it rather than aborting the CI.
+                skipped += 1
+                continue
+            boot_predictions = predict_outcome(boot_model, target_covars)
+            for col in outcome_columns:
+                mu_star = float(
+                    weighted_mean(pd.Series(boot_predictions[col]), target_weight).iloc[
+                        0
+                    ]
+                )
+                boot_estimates[col].append(mu_star)
 
     if skipped:
         logger.warning(

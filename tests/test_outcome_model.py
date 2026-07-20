@@ -706,6 +706,34 @@ class TestBootstrapOutcomeEstimate(balance.testutil.BalanceTestCase):
             res["happiness"].keys(), ["estimate", "ci_low", "ci_high"]
         )
 
+    def test_bootstrap_suppresses_per_replicate_logs(self) -> None:
+        # The N refits must not each emit a per-fit INFO line (a wall of
+        # identical logs); only a single summary line plus the one full-sample
+        # fit should appear.
+        covars_R, outcomes_R, w_R, target_covars, target_weight = self._data()
+        n_bootstrap = 25
+        with self.assertLogs("balance", level="INFO") as cm:
+            bootstrap_outcome_estimate(
+                covars_R,
+                outcomes_R,
+                w_R,
+                target_covars,
+                target_weight,
+                fit_kwargs={"model": LinearRegression()},
+                n_bootstrap=n_bootstrap,
+                random_seed=2020,
+            )
+        per_fit_logs = [
+            r for r in cm.records if "outcome_model: outcome" in r.getMessage()
+        ]
+        # At most the single full-sample fit logs its model choice — never once
+        # per replicate.
+        self.assertLessEqual(len(per_fit_logs), 1)
+        # The one-line bootstrap summary is still emitted.
+        self.assertTrue(
+            any("bootstrap replicate" in r.getMessage() for r in cm.records)
+        )
+
     def test_ci_brackets_point_estimate(self) -> None:
         covars_R, outcomes_R, w_R, target_covars, target_weight = self._data()
         res = bootstrap_outcome_estimate(
