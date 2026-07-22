@@ -3,7 +3,7 @@
 <html lang="en">
 <head><meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>balance_cli_tutorial</title><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+<title>balance_outcome_model</title><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
 <style type="text/css">
     pre { line-height: 125%; }
 td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
@@ -7796,29 +7796,33 @@ a.anchor-link {
 <!-- End of mermaid configuration --></head>
 <body class="jp-Notebook" data-jp-theme-light="true" data-jp-theme-name="JupyterLab Light">
 <main>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=3fcf91b9">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=e38170de">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h1 id="CLI-tutorial">CLI tutorial<a class="anchor-link" href="#CLI-tutorial">¶</a></h1><p>This tutorial walks through using the <code>balance</code> command-line interface (CLI) to adjust a sample dataset to a target. We will build a small demo dataset, run the CLI, and inspect the outputs.</p>
-<p>The real power of a CLI lies in how seamlessly it integrates into the broader ecosystem of automation and data workflows. A CLI command can be invoked directly from shell scripts, scheduled via cron jobs, embedded in CI/CD pipelines, or orchestrated through tools like Airflow - all with minimal overhead. This composability means you can chain balance operations with other command-line tools using pipes, process batches of files in a loop, or trigger analyses based on events, all while maintaining a clear audit trail since the command itself documents exactly what was run. The non-zero exit codes that CLIs return on failure integrate naturally with automated systems that need to halt pipelines or send alerts when something goes wrong. In short, a CLI transforms balance from something you use interactively into a building block for production-grade, reproducible workflows.</p>
+<h1 id="balance:-outcome-modelling-end-to-end-(the-g-computation-estimate-%CE%BC%CC%82_OM)">balance: outcome modelling end-to-end (the g-computation estimate <code>μ̂_OM</code>)<a class="anchor-link" href="#balance:-outcome-modelling-end-to-end-(the-g-computation-estimate-%CE%BC%CC%82_OM)">¶</a></h1><p>Once a sample has been reweighted to a target, <code>balance</code> can estimate the target-population mean of an <strong>outcome</strong> in more than one way. This tutorial walks the outcome-model (g-computation) estimator <code>μ̂_OM</code> end-to-end and compares it to the inverse-propensity-weighted estimate <code>μ̂_IPW</code>, on the same simulated data as the <a href="./quickstart">Quickstart</a>.</p>
+<ul>
+<li><strong><code>μ̂_IPW</code> — inverse-propensity (Hájek) weighted mean</strong> (<code>outcomes().mean()</code>): the weighted average of the responders' <em>observed</em> outcome using the adjustment weights. Consistent when the <strong>weighting</strong> (propensity) model is correct.</li>
+<li><strong><code>μ̂_OM</code> — outcome-model / g-computation estimate</strong> (<code>outcomes_hat().mean()</code>): fit a learner <code>ĝ(X) ≈ E[Y|X]</code> on the responders, apply it to the <strong>target</strong> covariates, and average the predicted outcomes with the target weights. Consistent when the <strong>outcome</strong> model is correct. Added in v0.23.</li>
+</ul>
+<p>The two estimators use the covariates differently, so comparing them is a useful robustness check: agreement is reassuring, disagreement points at a misspecified weighting or outcome model. (A doubly-robust / AIPW estimator that combines both is available as <code>bf.aipw()</code> — point estimate only; variance/CI and cross-fitting remain deferred.)</p>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=3ab860ae">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1147b55a">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="Prerequisites">Prerequisites<a class="anchor-link" href="#Prerequisites">¶</a></h2><p>Make sure <code>balance</code> is installed and the <code>balance</code> CLI is on your PATH. You can also run the CLI via <code>python -m balance.cli</code> from a checkout of the repository.</p>
+<h2 id="Load-the-data">Load the data<a class="anchor-link" href="#Load-the-data">¶</a></h2><p>We use the same simulated toy dataset as the Quickstart: a biased <code>sample</code> and the <code>target</code> population we want to estimate. The outcome is <code>happiness</code>; the target also carries <code>happiness</code> here only so we can compare our estimates against the ground truth.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=e911bd3d">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=fb31616c">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -7826,13 +7830,17 @@ a.anchor-link {
 <div class="jp-InputPrompt jp-InputArea-prompt">In [1]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<div class="highlight hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="c1"># Quiet Python warnings so the tutorial reads cleanly; in real use you may</span>
+<span class="c1"># want to keep them (they flag e.g. guessed id/weight columns). INFO logs</span>
+<span class="c1"># are left on so you can watch what balance does.</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">"ignore"</span><span class="p">)</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">balance</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_data</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">balance</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_data</span><span class="p">,</span> <span class="n">Sample</span>
+
+<span class="n">target_df</span><span class="p">,</span> <span class="n">sample_df</span> <span class="o">=</span> <span class="n">load_data</span><span class="p">()</span>
+<span class="n">sample_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
@@ -7845,14 +7853,14 @@ a.anchor-link {
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:15:24,668) [__init__/&lt;module&gt; (line 77)]: Using balance version 0.22.0.x
+<pre>INFO (2026-07-22 14:18:17,931) [__init__/&lt;module&gt; (line 77)]: Using balance version 0.22.0.x
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:15:24,669) [__init__/&lt;module&gt; (line 82)]: 
+<pre>INFO (2026-07-22 14:18:17,932) [__init__/&lt;module&gt; (line 82)]: 
 balance (Version 0.22.0.x) loaded:
     📖 Documentation: https://import-balance.org/
     🛠️ Help / Issues: https://github.com/facebookresearch/balance/issues/
@@ -7866,50 +7874,8 @@ balance (Version 0.22.0.x) loaded:
 </pre>
 </div>
 </div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b9a75d8a">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="Use-the-bundled-demo-data">Use the bundled demo data<a class="anchor-link" href="#Use-the-bundled-demo-data">¶</a></h2><p>Balance ships with a small demo dataset via <code>load_data()</code>. You can build the CLI input by
-adding a sample indicator and weight columns, then concatenate sample and target frames.</p>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=c062fe77">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">target_df</span><span class="p">,</span> <span class="n">sample_df</span> <span class="o">=</span> <span class="n">load_data</span><span class="p">()</span>
-
-<span class="n">sample_df</span> <span class="o">=</span> <span class="n">sample_df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-<span class="n">target_df</span> <span class="o">=</span> <span class="n">target_df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-<span class="n">sample_df</span><span class="p">[</span><span class="s2">"is_respondent"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
-<span class="n">target_df</span><span class="p">[</span><span class="s2">"is_respondent"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-<span class="n">sample_df</span><span class="p">[</span><span class="s2">"weight"</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
-<span class="n">target_df</span><span class="p">[</span><span class="s2">"weight"</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
-
-<span class="n">load_data_input_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">sample_df</span><span class="p">,</span> <span class="n">target_df</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">load_data_input_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell-outputWrapper">
-<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
-</div>
-<div class="jp-OutputArea jp-Cell-outputArea">
 <div class="jp-OutputArea-child jp-OutputArea-executeResult">
-<div class="jp-OutputPrompt jp-OutputArea-prompt">Out[2]:</div>
+<div class="jp-OutputPrompt jp-OutputArea-prompt">Out[1]:</div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/html" tabindex="0">
 <div>
 <style scoped="">
@@ -7934,8 +7900,6 @@ adding a sample indicator and weight columns, then concatenate sample and target
 <th>age_group</th>
 <th>income</th>
 <th>happiness</th>
-<th>is_respondent</th>
-<th>weight</th>
 </tr>
 </thead>
 <tbody>
@@ -7946,8 +7910,6 @@ adding a sample indicator and weight columns, then concatenate sample and target
 <td>25-34</td>
 <td>6.428659</td>
 <td>26.043029</td>
-<td>1</td>
-<td>1.0</td>
 </tr>
 <tr>
 <th>1</th>
@@ -7956,8 +7918,6 @@ adding a sample indicator and weight columns, then concatenate sample and target
 <td>18-24</td>
 <td>9.940280</td>
 <td>66.885485</td>
-<td>1</td>
-<td>1.0</td>
 </tr>
 <tr>
 <th>2</th>
@@ -7966,8 +7926,6 @@ adding a sample indicator and weight columns, then concatenate sample and target
 <td>18-24</td>
 <td>2.673623</td>
 <td>37.091922</td>
-<td>1</td>
-<td>1.0</td>
 </tr>
 <tr>
 <th>3</th>
@@ -7976,8 +7934,6 @@ adding a sample indicator and weight columns, then concatenate sample and target
 <td>18-24</td>
 <td>10.550308</td>
 <td>49.394050</td>
-<td>1</td>
-<td>1.0</td>
 </tr>
 <tr>
 <th>4</th>
@@ -7986,8 +7942,6 @@ adding a sample indicator and weight columns, then concatenate sample and target
 <td>18-24</td>
 <td>2.689994</td>
 <td>72.304208</td>
-<td>1</td>
-<td>1.0</td>
 </tr>
 </tbody>
 </table>
@@ -7997,56 +7951,28 @@ adding a sample indicator and weight columns, then concatenate sample and target
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c9e61940">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=df71d4e8">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="Run-the-CLI">Run the CLI<a class="anchor-link" href="#Run-the-CLI">¶</a></h2><p>We'll write the input dataset to disk, then call the CLI to compute weights and diagnostics.</p>
+<h2 id="Build-a-Sample,-link-the-target,-and-adjust">Build a <code>Sample</code>, link the target, and adjust<a class="anchor-link" href="#Build-a-Sample,-link-the-target,-and-adjust">¶</a></h2><p>We load the sample and target into <code>Sample</code> objects (declaring <code>happiness</code> as the outcome), link them, and run the default IPW adjustment — exactly the Quickstart workflow. The outcome model itself does <strong>not</strong> require the weights, but we adjust here so we can compare <code>μ̂_OM</code> against <code>μ̂_IPW</code>.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=b8cd2ef2">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=efc1feb0">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div>
+<div class="jp-InputPrompt jp-InputArea-prompt">In [2]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmpdir</span><span class="p">:</span>
-    <span class="n">input_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="s2">"input.csv"</span><span class="p">)</span>
-    <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="s2">"weights_out.csv"</span><span class="p">)</span>
-    <span class="n">diagnostics_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="s2">"diagnostics_out.csv"</span><span class="p">)</span>
+<div class="highlight hl-python"><pre><span></span><span class="n">sample</span> <span class="o">=</span> <span class="n">Sample</span><span class="o">.</span><span class="n">from_frame</span><span class="p">(</span><span class="n">sample_df</span><span class="p">,</span> <span class="n">outcome_columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"happiness"</span><span class="p">])</span>
+<span class="n">target</span> <span class="o">=</span> <span class="n">Sample</span><span class="o">.</span><span class="n">from_frame</span><span class="p">(</span><span class="n">target_df</span><span class="p">,</span> <span class="n">outcome_columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"happiness"</span><span class="p">])</span>
 
-    <span class="n">load_data_input_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="s2">"python"</span><span class="p">,</span>
-        <span class="s2">"-m"</span><span class="p">,</span>
-        <span class="s2">"balance.cli"</span><span class="p">,</span>
-        <span class="s2">"--input_file"</span><span class="p">,</span>
-        <span class="n">input_path</span><span class="p">,</span>
-        <span class="s2">"--output_file"</span><span class="p">,</span>
-        <span class="n">output_path</span><span class="p">,</span>
-        <span class="s2">"--diagnostics_output_file"</span><span class="p">,</span>
-        <span class="n">diagnostics_path</span><span class="p">,</span>
-        <span class="s2">"--covariate_columns"</span><span class="p">,</span>
-        <span class="s2">"gender,age_group,income"</span><span class="p">,</span>
-        <span class="s2">"--method"</span><span class="p">,</span>
-        <span class="s2">"ipw"</span><span class="p">,</span>
-        <span class="s2">"--weights_impact_on_outcome_method"</span><span class="p">,</span>
-        <span class="s2">"t_test"</span><span class="p">,</span>
-    <span class="p">]</span>
-
-    <span class="nb">print</span><span class="p">(</span><span class="s2">"CLI command:"</span><span class="p">,</span> <span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cmd</span><span class="p">))</span>
-    <span class="n">subprocess</span><span class="o">.</span><span class="n">check_call</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
-
-    <span class="n">load_data_adjusted_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span>
-    <span class="n">load_data_diagnostics_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">diagnostics_path</span><span class="p">)</span>
-
-<span class="n">load_data_adjusted_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+<span class="n">bf</span> <span class="o">=</span> <span class="n">sample</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">target</span><span class="p">)</span><span class="o">.</span><span class="n">adjust</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">"ipw"</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -8058,145 +7984,160 @@ adding a sample indicator and weight columns, then concatenate sample and target
 <div class="jp-OutputArea jp-Cell-outputArea">
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>CLI command: python -m balance.cli --input_file /tmp/tmpki0kfjtc/input.csv --output_file /tmp/tmpki0kfjtc/weights_out.csv --diagnostics_output_file /tmp/tmpki0kfjtc/diagnostics_out.csv --covariate_columns gender,age_group,income --method ipw --weights_impact_on_outcome_method t_test
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>WARNING (2026-07-22 14:18:17,959) [input_validation/guess_id_column (line 336)]: Guessed id column name id for the data
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:15:27,037) [__init__/&lt;module&gt; (line 77)]: Using balance version 0.22.0.x
-INFO (2026-07-22 14:15:27,037) [__init__/&lt;module&gt; (line 82)]: 
-balance (Version 0.22.0.x) loaded:
-    📖 Documentation: https://import-balance.org/
-    🛠️ Help / Issues: https://github.com/facebookresearch/balance/issues/
-    📄 Citation:
-        Sarig, T., Galili, T., &amp; Eilat, R. (2023).
-        balance - a Python package for balancing biased data samples.
-        https://arxiv.org/abs/2307.06024
-
-    Tip: You can view this message anytime with balance.help()
-
-INFO (2026-07-22 14:15:27,039) [cli/main (line 1343)]: Running cli.main() using balance version 0.22.0.x
-INFO (2026-07-22 14:15:27,039) [cli/main (line 1378)]: Attributes used by main() for running adjust: {'transformations': 'default', 'formula': None, 'penalty_factor': None, 'one_hot_encoding': True, 'max_de': 1.5, 'lambda_min': 1e-05, 'lambda_max': 10, 'num_lambdas': 250, 'weight_trimming_mean_ratio': 20.0, 'sample_cls': &lt;class 'balance.sample_class.Sample'&gt;, 'sample_package_name': 'balance', 'sample_package_version': '0.22.0.x'}
-INFO (2026-07-22 14:15:27,048) [cli/load_and_check_input (line 1173)]: Number of rows in input file: 11000
-INFO (2026-07-22 14:15:27,048) [cli/load_and_check_input (line 1179)]: Number of columns in input file: 7
-WARNING (2026-07-22 14:15:27,050) [sample_frame/from_frame (line 330)]: Casting id column to string
-WARNING (2026-07-22 14:15:27,061) [pandas_utils/_warn_of_df_dtypes_change (line 519)]: The dtypes of SampleFrame._df were changed from the original dtypes of the input df, here are the differences - 
-WARNING (2026-07-22 14:15:27,061) [pandas_utils/_warn_of_df_dtypes_change (line 530)]: The (old) dtypes that changed for df (before the change):
-WARNING (2026-07-22 14:15:27,062) [pandas_utils/_warn_of_df_dtypes_change (line 533)]: 
-id               int64
-is_respondent    int64
-dtype: object
-WARNING (2026-07-22 14:15:27,062) [pandas_utils/_warn_of_df_dtypes_change (line 534)]: The (new) dtypes saved in df (after the change):
-WARNING (2026-07-22 14:15:27,063) [pandas_utils/_warn_of_df_dtypes_change (line 535)]: 
-id                   str
-is_respondent    float64
-dtype: object
-INFO (2026-07-22 14:15:27,065) [cli/process_batch (line 988)]: balance sample object: 
-        balance Sample object
-        1000 observations x 3 variables: gender,age_group,income
-        id_column: id, weight_column: weight,
-        outcome_columns: None
-        
-WARNING (2026-07-22 14:15:27,067) [sample_frame/from_frame (line 330)]: Casting id column to string
-WARNING (2026-07-22 14:15:27,080) [pandas_utils/_warn_of_df_dtypes_change (line 519)]: The dtypes of SampleFrame._df were changed from the original dtypes of the input df, here are the differences - 
-WARNING (2026-07-22 14:15:27,080) [pandas_utils/_warn_of_df_dtypes_change (line 530)]: The (old) dtypes that changed for df (before the change):
-WARNING (2026-07-22 14:15:27,081) [pandas_utils/_warn_of_df_dtypes_change (line 533)]: 
-id               int64
-is_respondent    int64
-dtype: object
-WARNING (2026-07-22 14:15:27,081) [pandas_utils/_warn_of_df_dtypes_change (line 534)]: The (new) dtypes saved in df (after the change):
-WARNING (2026-07-22 14:15:27,082) [pandas_utils/_warn_of_df_dtypes_change (line 535)]: 
-id                   str
-is_respondent    float64
-dtype: object
-INFO (2026-07-22 14:15:27,085) [cli/process_batch (line 999)]: balance target object: 
-        balance Sample object
-        10000 observations x 3 variables: gender,age_group,income
-        id_column: id, weight_column: weight,
-        outcome_columns: None
-        
-INFO (2026-07-22 14:15:27,090) [ipw/ipw (line 735)]: Starting ipw function
-INFO (2026-07-22 14:15:27,094) [adjustment/apply_transformations (line 435)]: Adding the variables: []
-INFO (2026-07-22 14:15:27,094) [adjustment/apply_transformations (line 436)]: Transforming the variables: ['gender', 'age_group', 'income']
-INFO (2026-07-22 14:15:27,101) [adjustment/apply_transformations (line 472)]: Final variables in output: ['gender', 'age_group', 'income']
-INFO (2026-07-22 14:15:27,219) [ipw/ipw (line 813)]: Building model matrix
-INFO (2026-07-22 14:15:27,219) [ipw/ipw (line 814)]: The formula used to build the model matrix: ['income + gender + age_group + _is_na_gender']
-INFO (2026-07-22 14:15:27,219) [ipw/ipw (line 815)]: The number of columns in the model matrix: 18
-INFO (2026-07-22 14:15:27,219) [ipw/ipw (line 816)]: The number of rows in the model matrix: 11000
+<pre>WARNING (2026-07-22 14:18:17,970) [sample_frame/from_frame (line 377)]: No weights passed. Adding a 'weight' column and setting all values to 1
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:15:28,941) [ipw/ipw (line 1012)]: Done with sklearn
-INFO (2026-07-22 14:15:28,941) [ipw/ipw (line 1014)]: max_de: 1.5
-INFO (2026-07-22 14:15:28,941) [ipw/choose_regularization (line 380)]: Starting choosing regularisation parameters
+<pre>WARNING (2026-07-22 14:18:17,972) [input_validation/guess_id_column (line 336)]: Guessed id column name id for the data
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:15:37,443) [ipw/choose_regularization (line 466)]: Best regularisation: 
-           s  s_index  trim  design_effect  asmd_improvement      asmd
-9  0.064155       91   2.5        1.49551          0.535725  0.090719
-INFO (2026-07-22 14:15:37,445) [ipw/ipw (line 1092)]: Chosen lambda: 0.06415476458273757
-INFO (2026-07-22 14:15:37,445) [ipw/ipw (line 1109)]: Proportion null deviance explained 0.17450914016991492
-INFO (2026-07-22 14:15:37,448) [cli/process_batch (line 1022)]: Succeeded with adjusting sample to target
-INFO (2026-07-22 14:15:37,452) [cli/process_batch (line 1023)]: balance adjusted object: 
-        Adjusted balance Sample object with target set using ipw
-        1000 observations x 3 variables: gender,age_group,income,weight_pre_adjust,weight_adjusted_1
-        id_column: id, weight_column: weight,
-        outcome_columns: None
-        
-        adjustment details:
-            method: ipw
-            weight trimming mean ratio: 2.5
-            design effect (Deff): 1.496
-            effective sample size proportion (ESSP): 0.669
-            effective sample size (ESS): 668.7
-                
-            target:
-                 
-	        balance Sample object
-	        10000 observations x 3 variables: gender,age_group,income
-	        id_column: id, weight_column: weight,
-	        outcome_columns: None
-	        
-            3 common variables: gender,age_group,income
-            
-INFO (2026-07-22 14:15:37,452) [cli/process_batch (line 1025)]: Condition on which rows to keep for diagnostics: None 
-INFO (2026-07-22 14:15:37,452) [cli/process_batch (line 1029)]: Names of columns to keep for diagnostics: None 
-INFO (2026-07-22 14:15:37,452) [balance_frame/diagnostics (line 3904)]: Starting computation of diagnostics of the fitting
+<pre>WARNING (2026-07-22 14:18:17,985) [sample_frame/from_frame (line 377)]: No weights passed. Adding a 'weight' column and setting all values to 1
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:15:37,727) [balance_frame/diagnostics (line 3931)]: Done computing diagnostics
-INFO (2026-07-22 14:15:37,731) [cli/process_batch (line 1040)]: balance diagnostics object:                          metric           val            var
-0                          size   1000.000000     sample_obs
-1                          size      3.000000  sample_covars
-2                          size  10000.000000     target_obs
-3                          size      3.000000  target_covars
-4           weights_diagnostics      1.495510  design_effect
-..                          ...           ...            ...
-91  covar_main_asmd_improvement      0.182907         income
-92     covar_main_asmd_adjusted      0.173301     mean(asmd)
-93   covar_main_asmd_unadjusted      0.326799     mean(asmd)
-94  covar_main_asmd_improvement      0.153497     mean(asmd)
-95           adjustment_failure      0.000000           None
-
-[96 rows x 3 columns]
-INFO (2026-07-22 14:15:37,733) [cli/main (line 1432)]: Done fitting the model, writing output
+<pre>INFO (2026-07-22 14:18:17,994) [ipw/ipw (line 735)]: Starting ipw function
 </pre>
 </div>
 </div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:18:17,998) [adjustment/apply_transformations (line 435)]: Adding the variables: []
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:18:17,999) [adjustment/apply_transformations (line 436)]: Transforming the variables: ['gender', 'age_group', 'income']
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:18:18,008) [adjustment/apply_transformations (line 472)]: Final variables in output: ['gender', 'age_group', 'income']
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:18:18,126) [ipw/ipw (line 813)]: Building model matrix
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:18:18,127) [ipw/ipw (line 814)]: The formula used to build the model matrix: ['income + gender + age_group + _is_na_gender']
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:18:18,127) [ipw/ipw (line 815)]: The number of columns in the model matrix: 16
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:18:18,128) [ipw/ipw (line 816)]: The number of rows in the model matrix: 11000
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:18:38,040) [ipw/ipw (line 1012)]: Done with sklearn
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:18:38,041) [ipw/ipw (line 1014)]: max_de: None
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:18:38,042) [ipw/ipw (line 1036)]: Starting model selection
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:18:38,045) [ipw/ipw (line 1092)]: Chosen lambda: 0.041158338186664825
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:18:38,046) [ipw/ipw (line 1109)]: Proportion null deviance explained 0.172637976731583
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=2ea4cebb">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h2 id="%CE%BC%CC%82_IPW-%E2%80%94-the-inverse-propensity-weighted-estimate"><code>μ̂_IPW</code> — the inverse-propensity weighted estimate<a class="anchor-link" href="#%CE%BC%CC%82_IPW-%E2%80%94-the-inverse-propensity-weighted-estimate">¶</a></h2><p><code>outcomes().mean()</code> averages the <strong>observed</strong> outcome across sources:</p>
+<ul>
+<li>the <strong><code>self</code></strong> row is the <em>reweighted sample</em> — this is <code>μ̂_IPW</code>, the IPW estimate of the target mean;</li>
+<li>the <strong><code>target</code></strong> row is the target's own observed <code>happiness</code> (the ground truth, available in this simulation);</li>
+<li>the <strong><code>unadjusted</code></strong> row is the raw (unweighted) sample mean.</li>
+</ul>
+<p>The unadjusted sample badly under-estimates the target; reweighting pulls the <code>self</code> estimate toward the truth.</p>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=6145a015">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [3]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-python"><pre><span></span><span class="n">bf</span><span class="o">.</span><span class="n">outcomes</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
 <div class="jp-OutputArea-child jp-OutputArea-executeResult">
 <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[3]:</div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/html" tabindex="0">
@@ -8218,65 +8159,25 @@ INFO (2026-07-22 14:15:37,733) [cli/main (line 1432)]: Done fitting the model, w
 <thead>
 <tr style="text-align: right;">
 <th></th>
-<th>id</th>
-<th>gender</th>
-<th>age_group</th>
-<th>income</th>
-<th>weight</th>
 <th>happiness</th>
-<th>is_respondent</th>
+</tr>
+<tr>
+<th>source</th>
+<th></th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<th>0</th>
-<td>0</td>
-<td>Male</td>
-<td>25-34</td>
-<td>6.428659</td>
-<td>7.602714</td>
-<td>26.043029</td>
-<td>1.0</td>
+<th>self</th>
+<td>53.295</td>
 </tr>
 <tr>
-<th>1</th>
-<td>1</td>
-<td>Female</td>
-<td>18-24</td>
-<td>9.940280</td>
-<td>9.397964</td>
-<td>66.885485</td>
-<td>1.0</td>
+<th>target</th>
+<td>56.278</td>
 </tr>
 <tr>
-<th>2</th>
-<td>2</td>
-<td>Male</td>
-<td>18-24</td>
-<td>2.673623</td>
-<td>3.433402</td>
-<td>37.091922</td>
-<td>1.0</td>
-</tr>
-<tr>
-<th>3</th>
-<td>3</td>
-<td>NaN</td>
-<td>18-24</td>
-<td>10.550308</td>
-<td>6.491919</td>
-<td>49.394050</td>
-<td>1.0</td>
-</tr>
-<tr>
-<th>4</th>
-<td>4</td>
-<td>NaN</td>
-<td>18-24</td>
-<td>2.689994</td>
-<td>4.887119</td>
-<td>72.304208</td>
-<td>1.0</td>
+<th>unadjusted</th>
+<td>48.559</td>
 </tr>
 </tbody>
 </table>
@@ -8286,17 +8187,18 @@ INFO (2026-07-22 14:15:37,733) [cli/main (line 1432)]: Done fitting the model, w
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=210ef1ee">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=2677075b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Filter the diagnostics to review the outcome-weight impact metrics:</p>
+<h2 id="%CE%BC%CC%82_OM-%E2%80%94-the-outcome-model-(g-computation)-estimate"><code>μ̂_OM</code> — the outcome-model (g-computation) estimate<a class="anchor-link" href="#%CE%BC%CC%82_OM-%E2%80%94-the-outcome-model-(g-computation)-estimate">¶</a></h2><p>Now the outcome model. <code>fit_outcome_model()</code> fits <code>ĝ(X) ≈ E[Y|X]</code> on the responders (the default <code>model="auto"</code> is a gradient-boosted tree that handles the categorical covariates natively). <code>predict_outcomes(on="both")</code> then scores <strong>both</strong> the responders (in-sample <code>ŷ</code>) and the <strong>target</strong>, and populates the <code>outcomes_hat</code> (<code>ŷ</code>) columns.</p>
+<p>In <code>outcomes_hat().mean()</code> the <strong><code>target</code></strong> row is <code>μ̂_OM</code>: the weighted mean of the predicted outcome over the target. (The <code>self</code> row is the in-sample <code>ŷ</code> on the responders — a fit-quality check, not the population estimate.)</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=b513c4ad">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=a44cbebe">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8304,9 +8206,10 @@ INFO (2026-07-22 14:15:37,733) [cli/main (line 1432)]: Done fitting the model, w
 <div class="jp-InputPrompt jp-InputArea-prompt">In [4]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">load_data_diagnostics_df</span><span class="p">[</span>
-    <span class="n">load_data_diagnostics_df</span><span class="p">[</span><span class="s2">"metric"</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"weights_impact_on_outcome_"</span><span class="p">)</span>
-<span class="p">]</span>
+<div class="highlight hl-python"><pre><span></span><span class="n">bf</span><span class="o">.</span><span class="n">fit_outcome_model</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">"auto"</span><span class="p">)</span>
+<span class="n">bf</span><span class="o">.</span><span class="n">predict_outcomes</span><span class="p">(</span><span class="n">on</span><span class="o">=</span><span class="s2">"both"</span><span class="p">)</span>
+
+<span class="n">bf</span><span class="o">.</span><span class="n">outcomes_hat</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -8316,6 +8219,13 @@ INFO (2026-07-22 14:15:37,733) [cli/main (line 1432)]: Done fitting the model, w
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
 <div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:18:38,150) [outcome_model/fit_outcome_model (line 680)]: outcome_model: outcome 'happiness' (continuous) -&gt; HistGradientBoostingRegressor [auto]
+</pre>
+</div>
+</div>
 <div class="jp-OutputArea-child jp-OutputArea-executeResult">
 <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[4]:</div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/html" tabindex="0">
@@ -8337,12 +8247,22 @@ INFO (2026-07-22 14:15:37,733) [cli/main (line 1432)]: Done fitting the model, w
 <thead>
 <tr style="text-align: right;">
 <th></th>
-<th>metric</th>
-<th>val</th>
-<th>var</th>
+<th>happiness_hat</th>
+</tr>
+<tr>
+<th>source</th>
+<th></th>
 </tr>
 </thead>
 <tbody>
+<tr>
+<th>self</th>
+<td>53.242</td>
+</tr>
+<tr>
+<th>target</th>
+<td>54.818</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -8351,21 +8271,17 @@ INFO (2026-07-22 14:15:37,733) [cli/main (line 1432)]: Done fitting the model, w
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=5398a983">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=d56ee475">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="Inspect-diagnostics">Inspect diagnostics<a class="anchor-link" href="#Inspect-diagnostics">¶</a></h2><p>The diagnostics output is a flat table that includes adjustment metadata and balance
-metrics. The <code>metric</code> column identifies the type of diagnostic, while <code>var</code> indicates the
-variable (or <code>NaN</code> for overall summaries). It is most useful to inspect <code>var</code> in the
-context of the metric it belongs to. The cells below use the diagnostics from the
-previous CLI run (<code>load_data_diagnostics_df</code>).</p>
+<h2 id="An-honest-confidence-interval-for-%CE%BC%CC%82_OM">An honest confidence interval for <code>μ̂_OM</code><a class="anchor-link" href="#An-honest-confidence-interval-for-%CE%BC%CC%82_OM">¶</a></h2><p>The analytic CI treats the predictions <code>ŷ</code> as fixed, so it <em>under-covers</em> <code>μ̂_OM</code>. <code>mean_with_ci(ci_method="bootstrap")</code> gives an honest interval: it resamples the responders, refits <code>ĝ*</code>, predicts on the <strong>fixed</strong> target, and re-averages — a percentile CI over the replicates. It is deterministic given <code>random_seed</code>. (The default <code>model="auto"</code> is seeded, so <code>μ̂_OM</code> itself reproduces run-to-run.)</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=d20c0ce3">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=9746cd2f">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8373,11 +8289,7 @@ previous CLI run (<code>load_data_diagnostics_df</code>).</p>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [5]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="p">(</span>
-    <span class="n">load_data_diagnostics_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"metric"</span><span class="p">)[</span><span class="s2">"var"</span><span class="p">]</span>
-    <span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">col</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">unique</span><span class="p">()))</span>
-    <span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
-<span class="p">)</span>
+<div class="highlight hl-python"><pre><span></span><span class="n">bf</span><span class="o">.</span><span class="n">outcomes_hat</span><span class="p">()</span><span class="o">.</span><span class="n">mean_with_ci</span><span class="p">(</span><span class="n">ci_method</span><span class="o">=</span><span class="s2">"bootstrap"</span><span class="p">,</span> <span class="n">n_bootstrap</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="mi">2020</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -8387,51 +8299,22 @@ previous CLI run (<code>load_data_diagnostics_df</code>).</p>
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
 <div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:18:38,437) [outcome_model/fit_outcome_model (line 680)]: outcome_model: outcome 'happiness' (continuous) -&gt; HistGradientBoostingRegressor [model['happiness']]
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:18:38,667) [outcome_model/bootstrap_outcome_estimate (line 1066)]: bootstrap_outcome_estimate: fitting 200 bootstrap replicate(s) (per-replicate logs suppressed).
+</pre>
+</div>
+</div>
 <div class="jp-OutputArea-child jp-OutputArea-executeResult">
 <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[5]:</div>
-<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain" tabindex="0">
-<pre>metric
-adjustment_failure                                                            []
-adjustment_method                                                          [ipw]
-covar_asmd_adjusted            [age_group[T.25-34], age_group[T.35-44], age_g...
-covar_asmd_improvement         [age_group[T.25-34], age_group[T.35-44], age_g...
-covar_asmd_unadjusted          [age_group[T.25-34], age_group[T.35-44], age_g...
-covar_main_asmd_adjusted                 [age_group, gender, income, mean(asmd)]
-covar_main_asmd_improvement              [age_group, gender, income, mean(asmd)]
-covar_main_asmd_unadjusted               [age_group, gender, income, mean(asmd)]
-ipw_model_glance                                           [intercept_, n_iter_]
-ipw_multi_class                                                           [auto]
-ipw_penalty                                                         [deprecated]
-ipw_solver                                                               [lbfgs]
-model_coef                     [C(_is_na_gender, one_hot_encoding_greater_2)[...
-model_glance                   [deviance, l1_ratio, lambda, null_deviance, pr...
-size                           [sample_covars, sample_obs, target_covars, tar...
-weights_diagnostics            [describe_25%, describe_50%, describe_75%, des...
-Name: var, dtype: object</pre>
-</div>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=390ae698">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [6]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">load_data_diagnostics_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"metric == 'adjustment_method'"</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell-outputWrapper">
-<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
-</div>
-<div class="jp-OutputArea jp-Cell-outputArea">
-<div class="jp-OutputArea-child jp-OutputArea-executeResult">
-<div class="jp-OutputPrompt jp-OutputArea-prompt">Out[6]:</div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/html" tabindex="0">
 <div>
 <style scoped="">
@@ -8451,17 +8334,15 @@ Name: var, dtype: object</pre>
 <thead>
 <tr style="text-align: right;">
 <th></th>
-<th>metric</th>
-<th>val</th>
-<th>var</th>
+<th>target</th>
+<th>target_ci</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<th>28</th>
-<td>adjustment_method</td>
-<td>0.0</td>
-<td>ipw</td>
+<th>happiness_hat</th>
+<td>54.818</td>
+<td>(53.893, 55.857)</td>
 </tr>
 </tbody>
 </table>
@@ -8471,18 +8352,66 @@ Name: var, dtype: object</pre>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=b562fb6d">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=71be0b2e">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="CLI-Help-and-Arguments">CLI Help and Arguments<a class="anchor-link" href="#CLI-Help-and-Arguments">¶</a></h2><p>You can view all available CLI arguments using <code>--help</code>. Because the full output is long,
-the snippet below prints the first section only.</p>
+<p><code>outcomes_hat().summary()</code> reports the estimator and <em>scopes</em> any doubly-robust claim to the fit weights — it never prints a blanket "doubly robust" (a plain g-computation for the non-linear default; doubly robust only for a weighted linear-with-intercept fit).</p>
+<p>Compare its analytic <code>target</code> CI to the bootstrap interval above: the analytic one is noticeably narrower because it treats <code>ŷ</code> as fixed — exactly the under-coverage the bootstrap corrects.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=ec65a74b">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=cb66990c">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [6]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-python"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">bf</span><span class="o">.</span><span class="n">outcomes_hat</span><span class="p">()</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>1 predicted outcome(s): ['happiness_hat']
+Estimator: g-computation (model='auto') (not doubly robust)
+Mean predicted outcomes (analytic 95% CIs — these treat the predictions as fixed and under-cover the outcome-model estimate; use mean_with_ci(ci_method='bootstrap') for an honest interval):
+source           self  target           self_ci         target_ci
+happiness_hat  53.242  54.818  (52.301, 54.184)  (54.612, 55.023)
+
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=00636407">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h2 id="%CE%BC%CC%82_DR-%E2%80%94-the-doubly-robust-(AIPW)-estimate"><code>μ̂_DR</code> — the doubly-robust (AIPW) estimate<a class="anchor-link" href="#%CE%BC%CC%82_DR-%E2%80%94-the-doubly-robust-(AIPW)-estimate">¶</a></h2><p><code>bf.aipw()</code> combines the two estimators: it takes the outcome-model prediction on the target and augments it with the IPW-weighted residual on the responders,</p>
+<p><code>μ̂_DR = wmean(ĝ(X_T), w_T) + wmean(Y − ĝ(X_S), w)</code>,</p>
+<p>so it is consistent if <strong>either</strong> the outcome model <strong>or</strong> the weighting model is correct — a safety net when you are not sure which to trust. It reuses the model fit above and the IPW weights from <code>adjust()</code>.</p>
+<blockquote>
+<p><strong>Point estimate only.</strong> An honest AIPW interval must jointly capture the weighting- and outcome-model uncertainty (ideally with a cross-fit <code>ĝ</code>); that is on the roadmap but not yet available, so <code>aipw()</code> returns the point estimate alone.</p>
+</blockquote>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=44773b88">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8490,14 +8419,7 @@ the snippet below prints the first section only.</p>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [7]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Print a shorter CLI help snippet</span>
-<span class="n">help_output</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
-    <span class="p">[</span><span class="s2">"python"</span><span class="p">,</span> <span class="s2">"-m"</span><span class="p">,</span> <span class="s2">"balance.cli"</span><span class="p">,</span> <span class="s2">"--help"</span><span class="p">],</span>
-    <span class="n">check</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="p">)</span><span class="o">.</span><span class="n">stdout</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">help_output</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()[:</span><span class="mi">40</span><span class="p">]))</span>
+<div class="highlight hl-python"><pre><span></span><span class="n">bf</span><span class="o">.</span><span class="n">aipw</span><span class="p">()</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -8507,158 +8429,27 @@ the snippet below prints the first section only.</p>
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
 <div class="jp-OutputArea jp-Cell-outputArea">
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>usage: cli.py [-h] --input_file INPUT_FILE --output_file OUTPUT_FILE
-              [--diagnostics_output_file DIAGNOSTICS_OUTPUT_FILE]
-              [--method METHOD] [--sample_column SAMPLE_COLUMN]
-              [--id_column ID_COLUMN] [--weight_column WEIGHT_COLUMN]
-              --covariate_columns COVARIATE_COLUMNS
-              [--outcome_columns OUTCOME_COLUMNS]
-              [--covariate_columns_for_diagnostics COVARIATE_COLUMNS_FOR_DIAGNOSTICS]
-              [--rows_to_keep_for_diagnostics ROWS_TO_KEEP_FOR_DIAGNOSTICS]
-              [--weights_impact_on_outcome_method WEIGHTS_IMPACT_ON_OUTCOME_METHOD]
-              [--batch_columns BATCH_COLUMNS] [--keep_columns KEEP_COLUMNS]
-              [--keep_row_column KEEP_ROW_COLUMN]
-              [--sep_input_file SEP_INPUT_FILE]
-              [--sep_output_file SEP_OUTPUT_FILE]
-              [--sep_diagnostics_output_file SEP_DIAGNOSTICS_OUTPUT_FILE]
-              [--no_output_header] [--succeed_on_weighting_failure]
-              [--max_de MAX_DE] [--lambda_min LAMBDA_MIN]
-              [--lambda_max LAMBDA_MAX] [--num_lambdas NUM_LAMBDAS]
-              [--penalty_factor PENALTY_FACTOR]
-              [--ipw_logistic_regression_kwargs IPW_LOGISTIC_REGRESSION_KWARGS]
-              [--weight_trimming_mean_ratio WEIGHT_TRIMMING_MEAN_RATIO]
-              [--one_hot_encoding ONE_HOT_ENCODING]
-              [--transformations TRANSFORMATIONS] [--formula FORMULA]
-              [--return_df_with_original_dtypes]
-              [--standardize_types STANDARDIZE_TYPES]
-
-options:
-  -h, --help            show this help message and exit
-  --input_file INPUT_FILE
-                        Path to input sample/target
-  --output_file OUTPUT_FILE
-                        Path to write output weights
-  --diagnostics_output_file DIAGNOSTICS_OUTPUT_FILE
-                        Path to write adjustment diagnostics
-  --method METHOD       Method to use for weighting: ipw, cbps, null,
-                        poststratify, rake [default=ipw]
-  --sample_column SAMPLE_COLUMN
-                        Column indicating sample membership
-                        [default=is_respondent]
-  --id_column ID_COLUMN
-                        Column that identifies units [default=id]
-</pre>
+<div class="jp-OutputArea-child jp-OutputArea-executeResult">
+<div class="jp-OutputPrompt jp-OutputArea-prompt">Out[7]:</div>
+<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain" tabindex="0">
+<pre>happiness    54.871
+dtype: float64</pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a38887e9">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=920d53ae">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="Key-CLI-Arguments-Summary">Key CLI Arguments Summary<a class="anchor-link" href="#Key-CLI-Arguments-Summary">¶</a></h3><p>Here are the most commonly used arguments:</p>
-<table>
-<thead>
-<tr>
-<th>Argument</th>
-<th>Default</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--method</code></td>
-<td><code>ipw</code></td>
-<td>Adjustment method: <code>ipw</code>, <code>cbps</code>, or <code>rake</code></td>
-</tr>
-<tr>
-<td><code>--max_de</code></td>
-<td><code>1.5</code></td>
-<td>Maximum design effect. Set to <code>None</code> to use <code>lambda_1se</code> instead</td>
-</tr>
-<tr>
-<td><code>--lambda_min</code></td>
-<td><code>1e-05</code></td>
-<td>Lower bound for L1 penalty (IPW only)</td>
-</tr>
-<tr>
-<td><code>--lambda_max</code></td>
-<td><code>10</code></td>
-<td>Upper bound for L1 penalty (IPW only)</td>
-</tr>
-<tr>
-<td><code>--num_lambdas</code></td>
-<td><code>250</code></td>
-<td>Number of lambda values to search (IPW only)</td>
-</tr>
-<tr>
-<td><code>--weight_trimming_mean_ratio</code></td>
-<td><code>20.0</code></td>
-<td>Trim weights above <code>mean(weights) * ratio</code></td>
-</tr>
-<tr>
-<td><code>--transformations</code></td>
-<td><code>default</code></td>
-<td>Covariate transformations. Use <code>None</code> to disable</td>
-</tr>
-<tr>
-<td><code>--formula</code></td>
-<td><code>None</code></td>
-<td>Custom model formula (e.g., <code>"gender + income"</code>)</td>
-</tr>
-<tr>
-<td><code>--one_hot_encoding</code></td>
-<td><code>True</code></td>
-<td>One-hot encode categorical features</td>
-</tr>
-<tr>
-<td><code>--batch_columns</code></td>
-<td><code>None</code></td>
-<td>Columns to group by for batch processing</td>
-</tr>
-<tr>
-<td><code>--keep_columns</code></td>
-<td><code>None</code></td>
-<td>Subset of columns to include in output</td>
-</tr>
-<tr>
-<td><code>--outcome_columns</code></td>
-<td><code>None</code></td>
-<td>Columns treated as outcomes (not covariates)</td>
-</tr>
-<tr>
-<td><code>--ipw_logistic_regression_kwargs</code></td>
-<td><code>None</code></td>
-<td>JSON string of kwargs for sklearn LogisticRegression</td>
-</tr>
-<tr>
-<td><code>--succeed_on_weighting_failure</code></td>
-<td><code>False</code></td>
-<td>Return null weights instead of failing on errors</td>
-</tr>
-</tbody>
-</table>
+<h2 id="IPW,-outcome-model,-and-AIPW-%E2%80%94-side-by-side">IPW, outcome model, and AIPW — side by side<a class="anchor-link" href="#IPW,-outcome-model,-and-AIPW-%E2%80%94-side-by-side">¶</a></h2><p>All three estimators substantially reduce the bias of the raw sample mean and land close to the ground truth — and close to each other, which is the reassuring case. A large gap between <code>μ̂_IPW</code>, <code>μ̂_OM</code>, and <code>μ̂_DR</code> would instead flag a misspecified weighting or outcome model.</p>
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=2611ee70">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="Example:-Tuning-IPW-parameters">Example: Tuning IPW parameters<a class="anchor-link" href="#Example:-Tuning-IPW-parameters">¶</a></h3><p>Below we run the CLI with custom regularization settings and a custom logistic regression solver:</p>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=6c02a594">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=675ca2ba">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8666,39 +8457,21 @@ options:
 <div class="jp-InputPrompt jp-InputArea-prompt">In [8]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmpdir</span><span class="p">:</span>
-    <span class="n">input_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="s2">"input.csv"</span><span class="p">)</span>
-    <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="s2">"weights_tuned.csv"</span><span class="p">)</span>
-    <span class="n">diagnostics_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="s2">"diagnostics_tuned.csv"</span><span class="p">)</span>
+<div class="highlight hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
-    <span class="n">load_data_input_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="s2">"python"</span><span class="p">,</span>
-        <span class="s2">"-m"</span><span class="p">,</span>
-        <span class="s2">"balance.cli"</span><span class="p">,</span>
-        <span class="s2">"--input_file"</span><span class="p">,</span> <span class="n">input_path</span><span class="p">,</span>
-        <span class="s2">"--output_file"</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span>
-        <span class="s2">"--diagnostics_output_file"</span><span class="p">,</span> <span class="n">diagnostics_path</span><span class="p">,</span>
-        <span class="s2">"--covariate_columns"</span><span class="p">,</span> <span class="s2">"gender,age_group,income"</span><span class="p">,</span>
-        <span class="s2">"--method"</span><span class="p">,</span> <span class="s2">"ipw"</span><span class="p">,</span>
-        <span class="c1"># Tuning parameters</span>
-        <span class="s2">"--max_de"</span><span class="p">,</span> <span class="s2">"2.0"</span><span class="p">,</span>
-        <span class="s2">"--lambda_min"</span><span class="p">,</span> <span class="s2">"1e-06"</span><span class="p">,</span>
-        <span class="s2">"--lambda_max"</span><span class="p">,</span> <span class="s2">"100"</span><span class="p">,</span>
-        <span class="s2">"--num_lambdas"</span><span class="p">,</span> <span class="s2">"500"</span><span class="p">,</span>
-        <span class="s2">"--weight_trimming_mean_ratio"</span><span class="p">,</span> <span class="s2">"10.0"</span><span class="p">,</span>
-        <span class="c1"># Custom logistic regression settings</span>
-        <span class="s2">"--ipw_logistic_regression_kwargs"</span><span class="p">,</span> <span class="s1">'{"solver": "liblinear", "max_iter": 500}'</span><span class="p">,</span>
-    <span class="p">]</span>
-
-    <span class="nb">print</span><span class="p">(</span><span class="s2">"CLI command:"</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cmd</span><span class="p">))</span>
-    <span class="n">subprocess</span><span class="o">.</span><span class="n">check_call</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
-
-    <span class="n">tuned_adjusted_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span>
-
-<span class="n">tuned_adjusted_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+<span class="n">ipw</span> <span class="o">=</span> <span class="n">bf</span><span class="o">.</span><span class="n">outcomes</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<span class="n">om</span> <span class="o">=</span> <span class="n">bf</span><span class="o">.</span><span class="n">outcomes_hat</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="s2">"estimate_of_target_happiness"</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">"unadjusted (raw sample mean)"</span><span class="p">:</span> <span class="n">ipw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s2">"unadjusted"</span><span class="p">,</span> <span class="s2">"happiness"</span><span class="p">],</span>
+            <span class="s2">"mu_hat_IPW (reweighted sample)"</span><span class="p">:</span> <span class="n">ipw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s2">"self"</span><span class="p">,</span> <span class="s2">"happiness"</span><span class="p">],</span>
+            <span class="s2">"mu_hat_OM (outcome model)"</span><span class="p">:</span> <span class="n">om</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s2">"target"</span><span class="p">,</span> <span class="s2">"happiness_hat"</span><span class="p">],</span>
+            <span class="s2">"mu_hat_DR (AIPW, doubly robust)"</span><span class="p">:</span> <span class="n">bf</span><span class="o">.</span><span class="n">aipw</span><span class="p">()[</span><span class="s2">"happiness"</span><span class="p">],</span>
+            <span class="s2">"ground truth (target)"</span><span class="p">:</span> <span class="n">ipw</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s2">"target"</span><span class="p">,</span> <span class="s2">"happiness"</span><span class="p">],</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -8708,148 +8481,6 @@ options:
 <div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
 </div>
 <div class="jp-OutputArea jp-Cell-outputArea">
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>CLI command:
-python -m balance.cli --input_file /tmp/tmpefoksk0_/input.csv --output_file /tmp/tmpefoksk0_/weights_tuned.csv --diagnostics_output_file /tmp/tmpefoksk0_/diagnostics_tuned.csv --covariate_columns gender,age_group,income --method ipw --max_de 2.0 --lambda_min 1e-06 --lambda_max 100 --num_lambdas 500 --weight_trimming_mean_ratio 10.0 --ipw_logistic_regression_kwargs {"solver": "liblinear", "max_iter": 500}
-</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:15:42,938) [__init__/&lt;module&gt; (line 77)]: Using balance version 0.22.0.x
-INFO (2026-07-22 14:15:42,938) [__init__/&lt;module&gt; (line 82)]: 
-balance (Version 0.22.0.x) loaded:
-    📖 Documentation: https://import-balance.org/
-    🛠️ Help / Issues: https://github.com/facebookresearch/balance/issues/
-    📄 Citation:
-        Sarig, T., Galili, T., &amp; Eilat, R. (2023).
-        balance - a Python package for balancing biased data samples.
-        https://arxiv.org/abs/2307.06024
-
-    Tip: You can view this message anytime with balance.help()
-
-INFO (2026-07-22 14:15:42,939) [cli/main (line 1343)]: Running cli.main() using balance version 0.22.0.x
-INFO (2026-07-22 14:15:42,939) [cli/main (line 1378)]: Attributes used by main() for running adjust: {'transformations': 'default', 'formula': None, 'penalty_factor': None, 'one_hot_encoding': True, 'max_de': 2.0, 'lambda_min': 1e-06, 'lambda_max': 100.0, 'num_lambdas': 500, 'weight_trimming_mean_ratio': 10.0, 'sample_cls': &lt;class 'balance.sample_class.Sample'&gt;, 'sample_package_name': 'balance', 'sample_package_version': '0.22.0.x'}
-INFO (2026-07-22 14:15:42,949) [cli/load_and_check_input (line 1173)]: Number of rows in input file: 11000
-INFO (2026-07-22 14:15:42,949) [cli/load_and_check_input (line 1179)]: Number of columns in input file: 7
-WARNING (2026-07-22 14:15:42,951) [sample_frame/from_frame (line 330)]: Casting id column to string
-WARNING (2026-07-22 14:15:42,962) [pandas_utils/_warn_of_df_dtypes_change (line 519)]: The dtypes of SampleFrame._df were changed from the original dtypes of the input df, here are the differences - 
-WARNING (2026-07-22 14:15:42,962) [pandas_utils/_warn_of_df_dtypes_change (line 530)]: The (old) dtypes that changed for df (before the change):
-WARNING (2026-07-22 14:15:42,963) [pandas_utils/_warn_of_df_dtypes_change (line 533)]: 
-is_respondent    int64
-id               int64
-dtype: object
-WARNING (2026-07-22 14:15:42,963) [pandas_utils/_warn_of_df_dtypes_change (line 534)]: The (new) dtypes saved in df (after the change):
-WARNING (2026-07-22 14:15:42,964) [pandas_utils/_warn_of_df_dtypes_change (line 535)]: 
-is_respondent    float64
-id                   str
-dtype: object
-INFO (2026-07-22 14:15:42,966) [cli/process_batch (line 988)]: balance sample object: 
-        balance Sample object
-        1000 observations x 3 variables: gender,age_group,income
-        id_column: id, weight_column: weight,
-        outcome_columns: None
-        
-WARNING (2026-07-22 14:15:42,968) [sample_frame/from_frame (line 330)]: Casting id column to string
-WARNING (2026-07-22 14:15:42,981) [pandas_utils/_warn_of_df_dtypes_change (line 519)]: The dtypes of SampleFrame._df were changed from the original dtypes of the input df, here are the differences - 
-WARNING (2026-07-22 14:15:42,981) [pandas_utils/_warn_of_df_dtypes_change (line 530)]: The (old) dtypes that changed for df (before the change):
-WARNING (2026-07-22 14:15:42,982) [pandas_utils/_warn_of_df_dtypes_change (line 533)]: 
-is_respondent    int64
-id               int64
-dtype: object
-WARNING (2026-07-22 14:15:42,982) [pandas_utils/_warn_of_df_dtypes_change (line 534)]: The (new) dtypes saved in df (after the change):
-WARNING (2026-07-22 14:15:42,983) [pandas_utils/_warn_of_df_dtypes_change (line 535)]: 
-is_respondent    float64
-id                   str
-dtype: object
-INFO (2026-07-22 14:15:42,986) [cli/process_batch (line 999)]: balance target object: 
-        balance Sample object
-        10000 observations x 3 variables: gender,age_group,income
-        id_column: id, weight_column: weight,
-        outcome_columns: None
-        
-INFO (2026-07-22 14:15:42,992) [ipw/ipw (line 735)]: Starting ipw function
-INFO (2026-07-22 14:15:42,995) [adjustment/apply_transformations (line 435)]: Adding the variables: []
-INFO (2026-07-22 14:15:42,995) [adjustment/apply_transformations (line 436)]: Transforming the variables: ['gender', 'age_group', 'income']
-INFO (2026-07-22 14:15:43,002) [adjustment/apply_transformations (line 472)]: Final variables in output: ['gender', 'age_group', 'income']
-INFO (2026-07-22 14:15:43,121) [ipw/ipw (line 813)]: Building model matrix
-INFO (2026-07-22 14:15:43,121) [ipw/ipw (line 814)]: The formula used to build the model matrix: ['income + gender + age_group + _is_na_gender']
-INFO (2026-07-22 14:15:43,121) [ipw/ipw (line 815)]: The number of columns in the model matrix: 18
-INFO (2026-07-22 14:15:43,121) [ipw/ipw (line 816)]: The number of rows in the model matrix: 11000
-</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:15:43,161) [ipw/ipw (line 1012)]: Done with sklearn
-INFO (2026-07-22 14:15:43,161) [ipw/ipw (line 1014)]: max_de: 2.0
-INFO (2026-07-22 14:15:43,161) [ipw/choose_regularization (line 380)]: Starting choosing regularisation parameters
-</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:15:47,879) [ipw/choose_regularization (line 466)]: Best regularisation: 
-     s  s_index  trim  design_effect  asmd_improvement      asmd
-6 NaN        0   2.5       1.714071          0.634917  0.071337
-INFO (2026-07-22 14:15:47,881) [ipw/ipw (line 1092)]: Chosen lambda: nan
-INFO (2026-07-22 14:15:47,881) [ipw/ipw (line 1109)]: Proportion null deviance explained 0.18280833369391136
-INFO (2026-07-22 14:15:47,883) [cli/process_batch (line 1022)]: Succeeded with adjusting sample to target
-INFO (2026-07-22 14:15:47,888) [cli/process_batch (line 1023)]: balance adjusted object: 
-        Adjusted balance Sample object with target set using ipw
-        1000 observations x 3 variables: gender,age_group,income,weight_pre_adjust,weight_adjusted_1
-        id_column: id, weight_column: weight,
-        outcome_columns: None
-        
-        adjustment details:
-            method: ipw
-            weight trimming mean ratio: 2.5
-            design effect (Deff): 1.714
-            effective sample size proportion (ESSP): 0.583
-            effective sample size (ESS): 583.4
-                
-            target:
-                 
-	        balance Sample object
-	        10000 observations x 3 variables: gender,age_group,income
-	        id_column: id, weight_column: weight,
-	        outcome_columns: None
-	        
-            3 common variables: gender,age_group,income
-            
-INFO (2026-07-22 14:15:47,888) [cli/process_batch (line 1025)]: Condition on which rows to keep for diagnostics: None 
-INFO (2026-07-22 14:15:47,888) [cli/process_batch (line 1029)]: Names of columns to keep for diagnostics: None 
-INFO (2026-07-22 14:15:47,888) [balance_frame/diagnostics (line 3904)]: Starting computation of diagnostics of the fitting
-</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:15:48,158) [balance_frame/diagnostics (line 3931)]: Done computing diagnostics
-INFO (2026-07-22 14:15:48,163) [cli/process_batch (line 1040)]: balance diagnostics object:                          metric           val            var
-0                          size   1000.000000     sample_obs
-1                          size      3.000000  sample_covars
-2                          size  10000.000000     target_obs
-3                          size      3.000000  target_covars
-4           weights_diagnostics      1.714071  design_effect
-..                          ...           ...            ...
-91  covar_main_asmd_improvement      0.225463         income
-92     covar_main_asmd_adjusted      0.143344     mean(asmd)
-93   covar_main_asmd_unadjusted      0.326799     mean(asmd)
-94  covar_main_asmd_improvement      0.183455     mean(asmd)
-95           adjustment_failure      0.000000           None
-
-[96 rows x 3 columns]
-INFO (2026-07-22 14:15:48,165) [cli/main (line 1432)]: Done fitting the model, writing output
-</pre>
-</div>
-</div>
 <div class="jp-OutputArea-child jp-OutputArea-executeResult">
 <div class="jp-OutputPrompt jp-OutputArea-prompt">Out[8]:</div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/html" tabindex="0">
@@ -8871,65 +8502,29 @@ INFO (2026-07-22 14:15:48,165) [cli/main (line 1432)]: Done fitting the model, w
 <thead>
 <tr style="text-align: right;">
 <th></th>
-<th>id</th>
-<th>gender</th>
-<th>age_group</th>
-<th>income</th>
-<th>weight</th>
-<th>happiness</th>
-<th>is_respondent</th>
+<th>estimate_of_target_happiness</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<th>0</th>
-<td>0</td>
-<td>Male</td>
-<td>25-34</td>
-<td>6.428659</td>
-<td>6.714531</td>
-<td>26.043029</td>
-<td>1.0</td>
+<th>unadjusted (raw sample mean)</th>
+<td>48.56</td>
 </tr>
 <tr>
-<th>1</th>
-<td>1</td>
-<td>Female</td>
-<td>18-24</td>
-<td>9.940280</td>
-<td>8.721215</td>
-<td>66.885485</td>
-<td>1.0</td>
+<th>mu_hat_IPW (reweighted sample)</th>
+<td>53.30</td>
 </tr>
 <tr>
-<th>2</th>
-<td>2</td>
-<td>Male</td>
-<td>18-24</td>
-<td>2.673623</td>
-<td>2.537674</td>
-<td>37.091922</td>
-<td>1.0</td>
+<th>mu_hat_OM (outcome model)</th>
+<td>54.82</td>
 </tr>
 <tr>
-<th>3</th>
-<td>3</td>
-<td>NaN</td>
-<td>18-24</td>
-<td>10.550308</td>
-<td>5.587013</td>
-<td>49.394050</td>
-<td>1.0</td>
+<th>mu_hat_DR (AIPW, doubly robust)</th>
+<td>54.87</td>
 </tr>
 <tr>
-<th>4</th>
-<td>4</td>
-<td>NaN</td>
-<td>18-24</td>
-<td>2.689994</td>
-<td>3.883128</td>
-<td>72.304208</td>
-<td>1.0</td>
+<th>ground truth (target)</th>
+<td>56.28</td>
 </tr>
 </tbody>
 </table>
@@ -8939,25 +8534,55 @@ INFO (2026-07-22 14:15:48,165) [cli/main (line 1432)]: Done fitting the model, w
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=6321dab0">
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=284a6d5c">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="Example:-Using-a-Custom-Formula">Example: Using a Custom Formula<a class="anchor-link" href="#Example:-Using-a-Custom-Formula">¶</a></h3><p>The <code>--formula</code> argument allows you to specify a custom model formula, including interaction
-terms. When using <code>--formula</code>, you should typically also set <code>--transformations=None</code> to
-prevent automatic transformations from interfering with your custom formula.</p>
-<p>The formula uses patsy/R-style syntax:</p>
-<ul>
-<li><code>gender + income</code>: additive terms (no interaction)</li>
-<li><code>gender * income</code>: equivalent to <code>gender + income + gender:income</code> (main effects + interaction)</li>
-<li><code>gender:income</code>: only the interaction term</li>
-</ul>
+<p><strong>Which estimate should I use?</strong></p>
+<table>
+<thead>
+<tr>
+<th>Estimator</th>
+<th>Consistent when…</th>
+<th>Reach for it when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>μ̂_IPW</code> — <code>outcomes().mean()</code></td>
+<td>the <strong>weighting</strong> model is right</td>
+<td>you trust the propensity / weighting model</td>
+</tr>
+<tr>
+<td><code>μ̂_OM</code> — <code>outcomes_hat().mean()</code></td>
+<td>the <strong>outcome</strong> model is right</td>
+<td>you trust <code>ĝ(X) ≈ E[Y\|X]</code></td>
+</tr>
+<tr>
+<td><code>μ̂_DR</code> — <code>aipw()</code></td>
+<td><strong>either</strong> model is right (doubly robust)</td>
+<td>you're unsure which to trust</td>
+</tr>
+</tbody>
+</table>
+<p>When they agree (as they do here) that is reassuring; a large gap flags a misspecified weighting or outcome model.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=5f0970bf">
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=023033bc">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h2 id="Train-/-holdout-transfer">Train / holdout transfer<a class="anchor-link" href="#Train-/-holdout-transfer">¶</a></h2><p>You can fit the outcome model on one frame (a <em>train</em> split) and apply it to a <em>different</em> frame (a <em>holdout</em> / scoring split) with the same covariate schema — mirroring how <code>set_fitted_model</code> transfers a fitted IPW model. <code>set_fitted_outcome_model</code> copies the already-fitted model onto the holdout <strong>without re-fitting</strong> (the fitted learner is shared by identity), so predicting on the holdout target gives <code>μ̂_OM</code> computed with the train model.</p>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=8193348b">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -8965,38 +8590,22 @@ prevent automatic transformations from interfering with your custom formula.</p>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [9]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmpdir</span><span class="p">:</span>
-    <span class="n">input_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="s2">"input.csv"</span><span class="p">)</span>
-    <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="s2">"weights_formula.csv"</span><span class="p">)</span>
-    <span class="n">diagnostics_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="s2">"diagnostics_formula.csv"</span><span class="p">)</span>
+<div class="highlight hl-python"><pre><span></span><span class="n">half</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sample_df</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+<span class="n">train_bf</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">Sample</span><span class="o">.</span><span class="n">from_frame</span><span class="p">(</span><span class="n">sample_df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="n">half</span><span class="p">],</span> <span class="n">outcome_columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"happiness"</span><span class="p">])</span>
+    <span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">adjust</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">"ipw"</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">train_bf</span><span class="o">.</span><span class="n">fit_outcome_model</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">"auto"</span><span class="p">)</span>
 
-    <span class="c1"># Use the demo data for the formula example</span>
-    <span class="n">load_data_input_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">holdout_bf</span> <span class="o">=</span> <span class="n">Sample</span><span class="o">.</span><span class="n">from_frame</span><span class="p">(</span>
+    <span class="n">sample_df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">half</span><span class="p">:],</span> <span class="n">outcome_columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"happiness"</span><span class="p">]</span>
+<span class="p">)</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
 
-    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="s2">"python"</span><span class="p">,</span>
-        <span class="s2">"-m"</span><span class="p">,</span>
-        <span class="s2">"balance.cli"</span><span class="p">,</span>
-        <span class="s2">"--input_file"</span><span class="p">,</span> <span class="n">input_path</span><span class="p">,</span>
-        <span class="s2">"--output_file"</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span>
-        <span class="s2">"--diagnostics_output_file"</span><span class="p">,</span> <span class="n">diagnostics_path</span><span class="p">,</span>
-        <span class="s2">"--covariate_columns"</span><span class="p">,</span> <span class="s2">"gender,age_group,income"</span><span class="p">,</span>
-        <span class="s2">"--method"</span><span class="p">,</span> <span class="s2">"ipw"</span><span class="p">,</span>
-        <span class="c1"># Disable transformations to use raw covariates in formula</span>
-        <span class="s2">"--transformations"</span><span class="p">,</span> <span class="s2">"None"</span><span class="p">,</span>
-        <span class="c1"># Use a formula with interaction term</span>
-        <span class="s2">"--formula"</span><span class="p">,</span> <span class="s2">"gender*income"</span><span class="p">,</span>
-    <span class="p">]</span>
-
-    <span class="nb">print</span><span class="p">(</span><span class="s2">"CLI command with custom formula:"</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cmd</span><span class="p">))</span>
-    <span class="n">subprocess</span><span class="o">.</span><span class="n">check_call</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
-
-    <span class="n">formula_diagnostics_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">diagnostics_path</span><span class="p">)</span>
-
-<span class="c1"># Check model coefficients to verify formula was applied</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Model coefficients (showing interaction term):"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">formula_diagnostics_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"metric == 'model_coef'"</span><span class="p">)[[</span><span class="s2">"var"</span><span class="p">,</span> <span class="s2">"val"</span><span class="p">]])</span>
+<span class="c1"># Graft the train model onto the holdout (no re-fitting), then score the holdout.</span>
+<span class="n">scored</span> <span class="o">=</span> <span class="n">holdout_bf</span><span class="o">.</span><span class="n">set_fitted_outcome_model</span><span class="p">(</span><span class="n">train_bf</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">scored</span><span class="o">.</span><span class="n">predict_outcomes</span><span class="p">(</span><span class="n">on</span><span class="o">=</span><span class="s2">"both"</span><span class="p">)</span>
+<span class="n">scored</span><span class="o">.</span><span class="n">outcomes_hat</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>  <span class="c1"># target row = mu_hat_OM on the holdout target</span>
 </pre></div>
 </div>
 </div>
@@ -9008,522 +8617,139 @@ prevent automatic transformations from interfering with your custom formula.</p>
 <div class="jp-OutputArea jp-Cell-outputArea">
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>CLI command with custom formula:
-python -m balance.cli --input_file /tmp/tmpexvnt4jh/input.csv --output_file /tmp/tmpexvnt4jh/weights_formula.csv --diagnostics_output_file /tmp/tmpexvnt4jh/diagnostics_formula.csv --covariate_columns gender,age_group,income --method ipw --transformations None --formula gender*income
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>WARNING (2026-07-22 14:19:24,634) [input_validation/guess_id_column (line 336)]: Guessed id column name id for the data
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:15:50,797) [__init__/&lt;module&gt; (line 77)]: Using balance version 0.22.0.x
-INFO (2026-07-22 14:15:50,797) [__init__/&lt;module&gt; (line 82)]: 
-balance (Version 0.22.0.x) loaded:
-    📖 Documentation: https://import-balance.org/
-    🛠️ Help / Issues: https://github.com/facebookresearch/balance/issues/
-    📄 Citation:
-        Sarig, T., Galili, T., &amp; Eilat, R. (2023).
-        balance - a Python package for balancing biased data samples.
-        https://arxiv.org/abs/2307.06024
-
-    Tip: You can view this message anytime with balance.help()
-
-INFO (2026-07-22 14:15:50,799) [cli/main (line 1343)]: Running cli.main() using balance version 0.22.0.x
-INFO (2026-07-22 14:15:50,799) [cli/main (line 1378)]: Attributes used by main() for running adjust: {'transformations': None, 'formula': 'gender*income', 'penalty_factor': None, 'one_hot_encoding': True, 'max_de': 1.5, 'lambda_min': 1e-05, 'lambda_max': 10, 'num_lambdas': 250, 'weight_trimming_mean_ratio': 20.0, 'sample_cls': &lt;class 'balance.sample_class.Sample'&gt;, 'sample_package_name': 'balance', 'sample_package_version': '0.22.0.x'}
-INFO (2026-07-22 14:15:50,809) [cli/load_and_check_input (line 1173)]: Number of rows in input file: 11000
-INFO (2026-07-22 14:15:50,809) [cli/load_and_check_input (line 1179)]: Number of columns in input file: 7
-WARNING (2026-07-22 14:15:50,811) [sample_frame/from_frame (line 330)]: Casting id column to string
-WARNING (2026-07-22 14:15:50,821) [pandas_utils/_warn_of_df_dtypes_change (line 519)]: The dtypes of SampleFrame._df were changed from the original dtypes of the input df, here are the differences - 
-WARNING (2026-07-22 14:15:50,822) [pandas_utils/_warn_of_df_dtypes_change (line 530)]: The (old) dtypes that changed for df (before the change):
-WARNING (2026-07-22 14:15:50,823) [pandas_utils/_warn_of_df_dtypes_change (line 533)]: 
-id               int64
-is_respondent    int64
-dtype: object
-WARNING (2026-07-22 14:15:50,823) [pandas_utils/_warn_of_df_dtypes_change (line 534)]: The (new) dtypes saved in df (after the change):
-WARNING (2026-07-22 14:15:50,824) [pandas_utils/_warn_of_df_dtypes_change (line 535)]: 
-id                   str
-is_respondent    float64
-dtype: object
-INFO (2026-07-22 14:15:50,825) [cli/process_batch (line 988)]: balance sample object: 
-        balance Sample object
-        1000 observations x 3 variables: gender,age_group,income
-        id_column: id, weight_column: weight,
-        outcome_columns: None
-        
-WARNING (2026-07-22 14:15:50,828) [sample_frame/from_frame (line 330)]: Casting id column to string
-WARNING (2026-07-22 14:15:50,841) [pandas_utils/_warn_of_df_dtypes_change (line 519)]: The dtypes of SampleFrame._df were changed from the original dtypes of the input df, here are the differences - 
-WARNING (2026-07-22 14:15:50,841) [pandas_utils/_warn_of_df_dtypes_change (line 530)]: The (old) dtypes that changed for df (before the change):
-WARNING (2026-07-22 14:15:50,842) [pandas_utils/_warn_of_df_dtypes_change (line 533)]: 
-id               int64
-is_respondent    int64
-dtype: object
-WARNING (2026-07-22 14:15:50,842) [pandas_utils/_warn_of_df_dtypes_change (line 534)]: The (new) dtypes saved in df (after the change):
-WARNING (2026-07-22 14:15:50,843) [pandas_utils/_warn_of_df_dtypes_change (line 535)]: 
-id                   str
-is_respondent    float64
-dtype: object
-INFO (2026-07-22 14:15:50,847) [cli/process_batch (line 999)]: balance target object: 
-        balance Sample object
-        10000 observations x 3 variables: gender,age_group,income
-        id_column: id, weight_column: weight,
-        outcome_columns: None
-        
-INFO (2026-07-22 14:15:50,852) [ipw/ipw (line 735)]: Starting ipw function
-INFO (2026-07-22 14:15:50,903) [ipw/ipw (line 813)]: Building model matrix
-INFO (2026-07-22 14:15:50,903) [ipw/ipw (line 814)]: The formula used to build the model matrix: ['gender*income']
-INFO (2026-07-22 14:15:50,903) [ipw/ipw (line 815)]: The number of columns in the model matrix: 7
-INFO (2026-07-22 14:15:50,903) [ipw/ipw (line 816)]: The number of rows in the model matrix: 11000
+<pre>WARNING (2026-07-22 14:19:24,645) [sample_frame/from_frame (line 377)]: No weights passed. Adding a 'weight' column and setting all values to 1
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:15:52,662) [ipw/ipw (line 1012)]: Done with sklearn
-INFO (2026-07-22 14:15:52,662) [ipw/ipw (line 1014)]: max_de: 1.5
-INFO (2026-07-22 14:15:52,662) [ipw/choose_regularization (line 380)]: Starting choosing regularisation parameters
+<pre>INFO (2026-07-22 14:19:24,652) [ipw/ipw (line 735)]: Starting ipw function
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:15:59,217) [ipw/choose_regularization (line 466)]: Best regularisation: 
-           s  s_index  trim  design_effect  asmd_improvement      asmd
-9  0.043507       98   5.0       1.495849          0.517118  0.157805
-INFO (2026-07-22 14:15:59,218) [ipw/ipw (line 1092)]: Chosen lambda: 0.043506507030756265
-INFO (2026-07-22 14:15:59,219) [ipw/ipw (line 1109)]: Proportion null deviance explained 0.09595118841373662
-WARNING (2026-07-22 14:15:59,219) [ipw/ipw (line 1117)]: The propensity model has low fraction null deviance explained (0.09595118841373662). Results may not be accurate
-INFO (2026-07-22 14:15:59,221) [cli/process_batch (line 1022)]: Succeeded with adjusting sample to target
-INFO (2026-07-22 14:15:59,225) [cli/process_batch (line 1023)]: balance adjusted object: 
-        Adjusted balance Sample object with target set using ipw
-        1000 observations x 3 variables: gender,age_group,income,weight_pre_adjust,weight_adjusted_1
-        id_column: id, weight_column: weight,
-        outcome_columns: None
-        
-        adjustment details:
-            method: ipw
-            weight trimming mean ratio: 5.0
-            design effect (Deff): 1.496
-            effective sample size proportion (ESSP): 0.669
-            effective sample size (ESS): 668.5
-                
-            target:
-                 
-	        balance Sample object
-	        10000 observations x 3 variables: gender,age_group,income
-	        id_column: id, weight_column: weight,
-	        outcome_columns: None
-	        
-            3 common variables: gender,age_group,income
-            
-INFO (2026-07-22 14:15:59,225) [cli/process_batch (line 1025)]: Condition on which rows to keep for diagnostics: None 
-INFO (2026-07-22 14:15:59,225) [cli/process_batch (line 1029)]: Names of columns to keep for diagnostics: None 
-INFO (2026-07-22 14:15:59,225) [balance_frame/diagnostics (line 3904)]: Starting computation of diagnostics of the fitting
+<pre>INFO (2026-07-22 14:19:24,656) [adjustment/apply_transformations (line 435)]: Adding the variables: []
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:15:59,495) [balance_frame/diagnostics (line 3931)]: Done computing diagnostics
-INFO (2026-07-22 14:15:59,500) [cli/process_batch (line 1040)]: balance diagnostics object:                          metric           val            var
-0                          size   1000.000000     sample_obs
-1                          size      3.000000  sample_covars
-2                          size  10000.000000     target_obs
-3                          size      3.000000  target_covars
-4           weights_diagnostics      1.495849  design_effect
-..                          ...           ...            ...
-80  covar_main_asmd_improvement      0.301760         income
-81     covar_main_asmd_adjusted      0.157805     mean(asmd)
-82   covar_main_asmd_unadjusted      0.326799     mean(asmd)
-83  covar_main_asmd_improvement      0.168993     mean(asmd)
-84           adjustment_failure      0.000000           None
-
-[85 rows x 3 columns]
-INFO (2026-07-22 14:15:59,501) [cli/main (line 1432)]: Done fitting the model, writing output
-</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>
-Model coefficients (showing interaction term):
-                                                  var       val
-40                                          intercept  0.452742
-41      C(gender, one_hot_encoding_greater_2)[Female] -0.186488
-42  C(gender, one_hot_encoding_greater_2)[Female]:... -0.224843
-43        C(gender, one_hot_encoding_greater_2)[Male]  0.181382
-44  C(gender, one_hot_encoding_greater_2)[Male]:in... -0.198422
-45         C(gender, one_hot_encoding_greater_2)[_NA]  0.008414
-46  C(gender, one_hot_encoding_greater_2)[_NA]:income -0.091654
-47                                             income -0.372709
-</pre>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=1154e51f">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="Batch-Processing-Example">Batch Processing Example<a class="anchor-link" href="#Batch-Processing-Example">¶</a></h2><p>The <code>--batch_columns</code> argument allows you to run separate adjustments for each unique
-combination of values in the specified columns. This is useful when you want to compute
-weights independently for different subgroups (e.g., by gender or region).</p>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=9fb85b0f">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [10]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Create a dataset with a batch column for gender</span>
-<span class="n">batch_input_df</span> <span class="o">=</span> <span class="n">load_data_input_df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-
-<span class="c1"># The 'gender' column has values like 'Female', 'Male', and possibly NA</span>
-<span class="c1"># Filter to only rows with non-null gender for this example</span>
-<span class="n">batch_input_df</span> <span class="o">=</span> <span class="n">batch_input_df</span><span class="p">[</span><span class="n">batch_input_df</span><span class="p">[</span><span class="s2">"gender"</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Rows after filtering: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">batch_input_df</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Gender distribution:</span><span class="se">\n</span><span class="si">{</span><span class="n">batch_input_df</span><span class="p">[</span><span class="s1">'gender'</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell-outputWrapper">
-<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
-</div>
-<div class="jp-OutputArea jp-Cell-outputArea">
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>Rows after filtering: 10014
-Gender distribution:
-gender
-Male      5195
-Female    4819
-Name: count, dtype: int64
-</pre>
-</div>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=6fccd981">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [11]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmpdir</span><span class="p">:</span>
-    <span class="n">input_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="s2">"input_batch.csv"</span><span class="p">)</span>
-    <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="s2">"weights_batch.csv"</span><span class="p">)</span>
-    <span class="n">diagnostics_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="s2">"diagnostics_batch.csv"</span><span class="p">)</span>
-
-    <span class="n">batch_input_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="s2">"python"</span><span class="p">,</span>
-        <span class="s2">"-m"</span><span class="p">,</span>
-        <span class="s2">"balance.cli"</span><span class="p">,</span>
-        <span class="s2">"--input_file"</span><span class="p">,</span> <span class="n">input_path</span><span class="p">,</span>
-        <span class="s2">"--output_file"</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span>
-        <span class="s2">"--diagnostics_output_file"</span><span class="p">,</span> <span class="n">diagnostics_path</span><span class="p">,</span>
-        <span class="s2">"--covariate_columns"</span><span class="p">,</span> <span class="s2">"age_group,income"</span><span class="p">,</span>  <span class="c1"># Note: gender is now used as batch column</span>
-        <span class="s2">"--outcome_columns"</span><span class="p">,</span> <span class="s2">"happiness"</span><span class="p">,</span>
-        <span class="s2">"--batch_columns"</span><span class="p">,</span> <span class="s2">"gender"</span><span class="p">,</span>  <span class="c1"># Process each gender separately</span>
-        <span class="s2">"--method"</span><span class="p">,</span> <span class="s2">"ipw"</span><span class="p">,</span>
-    <span class="p">]</span>
-
-    <span class="nb">print</span><span class="p">(</span><span class="s2">"CLI command with batch processing:"</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cmd</span><span class="p">))</span>
-    <span class="n">subprocess</span><span class="o">.</span><span class="n">check_call</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
-
-    <span class="n">batch_adjusted_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span>
-    <span class="n">batch_diagnostics_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">diagnostics_path</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Output rows: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">batch_adjusted_df</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="n">batch_adjusted_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell-outputWrapper">
-<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
-</div>
-<div class="jp-OutputArea jp-Cell-outputArea">
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>CLI command with batch processing:
-python -m balance.cli --input_file /tmp/tmp1cdjx97v/input_batch.csv --output_file /tmp/tmp1cdjx97v/weights_batch.csv --diagnostics_output_file /tmp/tmp1cdjx97v/diagnostics_batch.csv --covariate_columns age_group,income --outcome_columns happiness --batch_columns gender --method ipw
+<pre>INFO (2026-07-22 14:19:24,656) [adjustment/apply_transformations (line 436)]: Transforming the variables: ['gender', 'age_group', 'income']
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:16:02,088) [__init__/&lt;module&gt; (line 77)]: Using balance version 0.22.0.x
-INFO (2026-07-22 14:16:02,088) [__init__/&lt;module&gt; (line 82)]: 
-balance (Version 0.22.0.x) loaded:
-    📖 Documentation: https://import-balance.org/
-    🛠️ Help / Issues: https://github.com/facebookresearch/balance/issues/
-    📄 Citation:
-        Sarig, T., Galili, T., &amp; Eilat, R. (2023).
-        balance - a Python package for balancing biased data samples.
-        https://arxiv.org/abs/2307.06024
-
-    Tip: You can view this message anytime with balance.help()
-
-INFO (2026-07-22 14:16:02,089) [cli/main (line 1343)]: Running cli.main() using balance version 0.22.0.x
-INFO (2026-07-22 14:16:02,090) [cli/main (line 1378)]: Attributes used by main() for running adjust: {'transformations': 'default', 'formula': None, 'penalty_factor': None, 'one_hot_encoding': True, 'max_de': 1.5, 'lambda_min': 1e-05, 'lambda_max': 10, 'num_lambdas': 250, 'weight_trimming_mean_ratio': 20.0, 'sample_cls': &lt;class 'balance.sample_class.Sample'&gt;, 'sample_package_name': 'balance', 'sample_package_version': '0.22.0.x'}
-INFO (2026-07-22 14:16:02,098) [cli/load_and_check_input (line 1173)]: Number of rows in input file: 10014
-INFO (2026-07-22 14:16:02,099) [cli/load_and_check_input (line 1179)]: Number of columns in input file: 7
-INFO (2026-07-22 14:16:02,101) [cli/main (line 1389)]: Running weighting for batch = ('Female',) 
-WARNING (2026-07-22 14:16:02,102) [sample_frame/from_frame (line 330)]: Casting id column to string
-WARNING (2026-07-22 14:16:02,112) [pandas_utils/_warn_of_df_dtypes_change (line 519)]: The dtypes of SampleFrame._df were changed from the original dtypes of the input df, here are the differences - 
-WARNING (2026-07-22 14:16:02,113) [pandas_utils/_warn_of_df_dtypes_change (line 530)]: The (old) dtypes that changed for df (before the change):
-WARNING (2026-07-22 14:16:02,114) [pandas_utils/_warn_of_df_dtypes_change (line 533)]: 
-id               int64
-is_respondent    int64
-dtype: object
-WARNING (2026-07-22 14:16:02,114) [pandas_utils/_warn_of_df_dtypes_change (line 534)]: The (new) dtypes saved in df (after the change):
-WARNING (2026-07-22 14:16:02,114) [pandas_utils/_warn_of_df_dtypes_change (line 535)]: 
-id                   str
-is_respondent    float64
-dtype: object
-INFO (2026-07-22 14:16:02,121) [cli/process_batch (line 988)]: balance sample object: 
-        balance Sample object
-        268 observations x 2 variables: age_group,income
-        id_column: id, weight_column: weight,
-        outcome_columns: happiness
-        
-WARNING (2026-07-22 14:16:02,122) [sample_frame/from_frame (line 330)]: Casting id column to string
-WARNING (2026-07-22 14:16:02,133) [pandas_utils/_warn_of_df_dtypes_change (line 519)]: The dtypes of SampleFrame._df were changed from the original dtypes of the input df, here are the differences - 
-WARNING (2026-07-22 14:16:02,133) [pandas_utils/_warn_of_df_dtypes_change (line 530)]: The (old) dtypes that changed for df (before the change):
-WARNING (2026-07-22 14:16:02,134) [pandas_utils/_warn_of_df_dtypes_change (line 533)]: 
-id               int64
-is_respondent    int64
-dtype: object
-WARNING (2026-07-22 14:16:02,134) [pandas_utils/_warn_of_df_dtypes_change (line 534)]: The (new) dtypes saved in df (after the change):
-WARNING (2026-07-22 14:16:02,134) [pandas_utils/_warn_of_df_dtypes_change (line 535)]: 
-id                   str
-is_respondent    float64
-dtype: object
-INFO (2026-07-22 14:16:02,141) [cli/process_batch (line 999)]: balance target object: 
-        balance Sample object
-        4551 observations x 2 variables: age_group,income
-        id_column: id, weight_column: weight,
-        outcome_columns: happiness
-        
-INFO (2026-07-22 14:16:02,144) [ipw/ipw (line 735)]: Starting ipw function
-INFO (2026-07-22 14:16:02,147) [adjustment/apply_transformations (line 435)]: Adding the variables: []
-INFO (2026-07-22 14:16:02,147) [adjustment/apply_transformations (line 436)]: Transforming the variables: ['age_group', 'income']
-INFO (2026-07-22 14:16:02,151) [adjustment/apply_transformations (line 472)]: Final variables in output: ['age_group', 'income']
-INFO (2026-07-22 14:16:02,189) [ipw/ipw (line 813)]: Building model matrix
-INFO (2026-07-22 14:16:02,189) [ipw/ipw (line 814)]: The formula used to build the model matrix: ['income + age_group']
-INFO (2026-07-22 14:16:02,189) [ipw/ipw (line 815)]: The number of columns in the model matrix: 14
-INFO (2026-07-22 14:16:02,189) [ipw/ipw (line 816)]: The number of rows in the model matrix: 4819
+<pre>INFO (2026-07-22 14:19:24,664) [adjustment/apply_transformations (line 472)]: Final variables in output: ['gender', 'age_group', 'income']
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:16:03,336) [ipw/ipw (line 1012)]: Done with sklearn
-INFO (2026-07-22 14:16:03,336) [ipw/ipw (line 1014)]: max_de: 1.5
-INFO (2026-07-22 14:16:03,336) [ipw/choose_regularization (line 380)]: Starting choosing regularisation parameters
+<pre>INFO (2026-07-22 14:19:24,778) [ipw/ipw (line 813)]: Building model matrix
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:16:07,396) [ipw/choose_regularization (line 466)]: Best regularisation: 
-           s  s_index  trim  design_effect  asmd_improvement     asmd
-6  0.105705       82   5.0       1.489687           0.49424  0.09868
-INFO (2026-07-22 14:16:07,398) [ipw/ipw (line 1092)]: Chosen lambda: 0.10570520810009826
-INFO (2026-07-22 14:16:07,399) [ipw/ipw (line 1109)]: Proportion null deviance explained 0.14888521519197495
-INFO (2026-07-22 14:16:07,401) [cli/process_batch (line 1022)]: Succeeded with adjusting sample to target
-INFO (2026-07-22 14:16:07,415) [cli/process_batch (line 1023)]: balance adjusted object: 
-        Adjusted balance Sample object with target set using ipw
-        268 observations x 2 variables: age_group,income,weight_pre_adjust,weight_adjusted_1
-        id_column: id, weight_column: weight,
-        outcome_columns: happiness
-        
-        adjustment details:
-            method: ipw
-            weight trimming mean ratio: 5.0
-            design effect (Deff): 1.490
-            effective sample size proportion (ESSP): 0.671
-            effective sample size (ESS): 179.9
-                
-            target:
-                 
-	        balance Sample object
-	        4551 observations x 2 variables: age_group,income
-	        id_column: id, weight_column: weight,
-	        outcome_columns: happiness
-	        
-            2 common variables: age_group,income
-            
-INFO (2026-07-22 14:16:07,415) [cli/process_batch (line 1025)]: Condition on which rows to keep for diagnostics: None 
-INFO (2026-07-22 14:16:07,415) [cli/process_batch (line 1029)]: Names of columns to keep for diagnostics: None 
-INFO (2026-07-22 14:16:07,415) [balance_frame/diagnostics (line 3904)]: Starting computation of diagnostics of the fitting
-INFO (2026-07-22 14:16:07,565) [balance_frame/diagnostics (line 3931)]: Done computing diagnostics
-INFO (2026-07-22 14:16:07,569) [cli/process_batch (line 1040)]: balance diagnostics object:                          metric          val            var
-0                          size   268.000000     sample_obs
-1                          size     2.000000  sample_covars
-2                          size  4551.000000     target_obs
-3                          size     2.000000  target_covars
-4           weights_diagnostics     1.489687  design_effect
-..                          ...          ...            ...
-86  covar_main_asmd_improvement     0.185596         income
-87     covar_main_asmd_adjusted     0.220366     mean(asmd)
-88   covar_main_asmd_unadjusted     0.422500     mean(asmd)
-89  covar_main_asmd_improvement     0.202135     mean(asmd)
-90           adjustment_failure     0.000000           None
-
-[91 rows x 3 columns]
-INFO (2026-07-22 14:16:07,572) [cli/main (line 1406)]: Done processing batch ('Female',)
-INFO (2026-07-22 14:16:07,572) [cli/main (line 1389)]: Running weighting for batch = ('Male',) 
-WARNING (2026-07-22 14:16:07,573) [sample_frame/from_frame (line 330)]: Casting id column to string
-WARNING (2026-07-22 14:16:07,583) [pandas_utils/_warn_of_df_dtypes_change (line 519)]: The dtypes of SampleFrame._df were changed from the original dtypes of the input df, here are the differences - 
-WARNING (2026-07-22 14:16:07,583) [pandas_utils/_warn_of_df_dtypes_change (line 530)]: The (old) dtypes that changed for df (before the change):
-WARNING (2026-07-22 14:16:07,584) [pandas_utils/_warn_of_df_dtypes_change (line 533)]: 
-id               int64
-is_respondent    int64
-dtype: object
-WARNING (2026-07-22 14:16:07,584) [pandas_utils/_warn_of_df_dtypes_change (line 534)]: The (new) dtypes saved in df (after the change):
-WARNING (2026-07-22 14:16:07,585) [pandas_utils/_warn_of_df_dtypes_change (line 535)]: 
-id                   str
-is_respondent    float64
-dtype: object
-INFO (2026-07-22 14:16:07,591) [cli/process_batch (line 988)]: balance sample object: 
-        balance Sample object
-        644 observations x 2 variables: age_group,income
-        id_column: id, weight_column: weight,
-        outcome_columns: happiness
-        
-WARNING (2026-07-22 14:16:07,592) [sample_frame/from_frame (line 330)]: Casting id column to string
+<pre>INFO (2026-07-22 14:19:24,779) [ipw/ipw (line 814)]: The formula used to build the model matrix: ['income + gender + age_group + _is_na_gender']
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>WARNING (2026-07-22 14:16:07,603) [pandas_utils/_warn_of_df_dtypes_change (line 519)]: The dtypes of SampleFrame._df were changed from the original dtypes of the input df, here are the differences - 
-WARNING (2026-07-22 14:16:07,603) [pandas_utils/_warn_of_df_dtypes_change (line 530)]: The (old) dtypes that changed for df (before the change):
-WARNING (2026-07-22 14:16:07,604) [pandas_utils/_warn_of_df_dtypes_change (line 533)]: 
-id               int64
-is_respondent    int64
-dtype: object
-WARNING (2026-07-22 14:16:07,604) [pandas_utils/_warn_of_df_dtypes_change (line 534)]: The (new) dtypes saved in df (after the change):
-WARNING (2026-07-22 14:16:07,605) [pandas_utils/_warn_of_df_dtypes_change (line 535)]: 
-id                   str
-is_respondent    float64
-dtype: object
-INFO (2026-07-22 14:16:07,612) [cli/process_batch (line 999)]: balance target object: 
-        balance Sample object
-        4551 observations x 2 variables: age_group,income
-        id_column: id, weight_column: weight,
-        outcome_columns: happiness
-        
-INFO (2026-07-22 14:16:07,615) [ipw/ipw (line 735)]: Starting ipw function
-INFO (2026-07-22 14:16:07,617) [adjustment/apply_transformations (line 435)]: Adding the variables: []
-INFO (2026-07-22 14:16:07,617) [adjustment/apply_transformations (line 436)]: Transforming the variables: ['age_group', 'income']
-INFO (2026-07-22 14:16:07,622) [adjustment/apply_transformations (line 472)]: Final variables in output: ['age_group', 'income']
-INFO (2026-07-22 14:16:07,660) [ipw/ipw (line 813)]: Building model matrix
-INFO (2026-07-22 14:16:07,661) [ipw/ipw (line 814)]: The formula used to build the model matrix: ['income + age_group']
-INFO (2026-07-22 14:16:07,661) [ipw/ipw (line 815)]: The number of columns in the model matrix: 14
-INFO (2026-07-22 14:16:07,661) [ipw/ipw (line 816)]: The number of rows in the model matrix: 5195
+<pre>INFO (2026-07-22 14:19:24,779) [ipw/ipw (line 815)]: The number of columns in the model matrix: 16
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:16:08,671) [ipw/ipw (line 1012)]: Done with sklearn
-INFO (2026-07-22 14:16:08,671) [ipw/ipw (line 1014)]: max_de: 1.5
-INFO (2026-07-22 14:16:08,671) [ipw/choose_regularization (line 380)]: Starting choosing regularisation parameters
+<pre>INFO (2026-07-22 14:19:24,780) [ipw/ipw (line 816)]: The number of rows in the model matrix: 10500
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:16:12,742) [ipw/choose_regularization (line 466)]: Best regularisation: 
-           s  s_index  trim  design_effect  asmd_improvement      asmd
-9  0.111736       81   5.0       1.495967          0.566287  0.087357
-INFO (2026-07-22 14:16:12,743) [ipw/ipw (line 1092)]: Chosen lambda: 0.11173591019485084
-INFO (2026-07-22 14:16:12,743) [ipw/ipw (line 1109)]: Proportion null deviance explained 0.1426717197478461
-INFO (2026-07-22 14:16:12,745) [cli/process_batch (line 1022)]: Succeeded with adjusting sample to target
-INFO (2026-07-22 14:16:12,759) [cli/process_batch (line 1023)]: balance adjusted object: 
-        Adjusted balance Sample object with target set using ipw
-        644 observations x 2 variables: age_group,income,weight_pre_adjust,weight_adjusted_1
-        id_column: id, weight_column: weight,
-        outcome_columns: happiness
-        
-        adjustment details:
-            method: ipw
-            weight trimming mean ratio: 5.0
-            design effect (Deff): 1.496
-            effective sample size proportion (ESSP): 0.668
-            effective sample size (ESS): 430.5
-                
-            target:
-                 
-	        balance Sample object
-	        4551 observations x 2 variables: age_group,income
-	        id_column: id, weight_column: weight,
-	        outcome_columns: happiness
-	        
-            2 common variables: age_group,income
-            
-INFO (2026-07-22 14:16:12,760) [cli/process_batch (line 1025)]: Condition on which rows to keep for diagnostics: None 
-INFO (2026-07-22 14:16:12,760) [cli/process_batch (line 1029)]: Names of columns to keep for diagnostics: None 
-INFO (2026-07-22 14:16:12,760) [balance_frame/diagnostics (line 3904)]: Starting computation of diagnostics of the fitting
-INFO (2026-07-22 14:16:12,913) [balance_frame/diagnostics (line 3931)]: Done computing diagnostics
-INFO (2026-07-22 14:16:12,917) [cli/process_batch (line 1040)]: balance diagnostics object:                          metric          val            var
-0                          size   644.000000     sample_obs
-1                          size     2.000000  sample_covars
-2                          size  4551.000000     target_obs
-3                          size     2.000000  target_covars
-4           weights_diagnostics     1.495967  design_effect
-..                          ...          ...            ...
-86  covar_main_asmd_improvement     0.235830         income
-87     covar_main_asmd_adjusted     0.192214     mean(asmd)
-88   covar_main_asmd_unadjusted     0.430017     mean(asmd)
-89  covar_main_asmd_improvement     0.237804     mean(asmd)
-90           adjustment_failure     0.000000           None
-
-[91 rows x 3 columns]
-INFO (2026-07-22 14:16:12,919) [cli/main (line 1406)]: Done processing batch ('Male',)
-INFO (2026-07-22 14:16:12,920) [cli/main (line 1432)]: Done fitting the model, writing output
+<pre>INFO (2026-07-22 14:19:44,962) [ipw/ipw (line 1012)]: Done with sklearn
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>
-Output rows: 912
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:19:44,963) [ipw/ipw (line 1014)]: max_de: None
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:19:44,964) [ipw/ipw (line 1036)]: Starting model selection
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:19:44,967) [ipw/ipw (line 1092)]: Chosen lambda: 0.05431749824945828
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:19:44,967) [ipw/ipw (line 1109)]: Proportion null deviance explained 0.1626470503637164
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:19:44,975) [outcome_model/fit_outcome_model (line 680)]: outcome_model: outcome 'happiness' (continuous) -&gt; HistGradientBoostingRegressor [auto]
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>WARNING (2026-07-22 14:19:45,164) [input_validation/guess_id_column (line 336)]: Guessed id column name id for the data
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>WARNING (2026-07-22 14:19:45,175) [sample_frame/from_frame (line 377)]: No weights passed. Adding a 'weight' column and setting all values to 1
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>WARNING (2026-07-22 14:19:45,182) [model_matrix/build_design_matrix (line 914)]: build_design_matrix: holdout data is missing 1 fit-time column(s); zero-filling unseen columns: ['_is_na_gender']
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child jp-OutputArea-executeResult">
-<div class="jp-OutputPrompt jp-OutputArea-prompt">Out[11]:</div>
+<div class="jp-OutputPrompt jp-OutputArea-prompt">Out[9]:</div>
 <div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/html" tabindex="0">
 <div>
 <style scoped="">
@@ -9543,65 +8769,21 @@ Output rows: 912
 <thead>
 <tr style="text-align: right;">
 <th></th>
-<th>id</th>
-<th>age_group</th>
-<th>income</th>
-<th>happiness</th>
-<th>weight</th>
-<th>gender</th>
-<th>is_respondent</th>
+<th>happiness_hat</th>
+</tr>
+<tr>
+<th>source</th>
+<th></th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<th>0</th>
-<td>1</td>
-<td>18-24</td>
-<td>9.940280</td>
-<td>66.885485</td>
-<td>10.379924</td>
-<td>Female</td>
-<td>1.0</td>
+<th>self</th>
+<td>48.475</td>
 </tr>
 <tr>
-<th>1</th>
-<td>92</td>
-<td>35-44</td>
-<td>0.185097</td>
-<td>84.464522</td>
-<td>18.176360</td>
-<td>Female</td>
-<td>1.0</td>
-</tr>
-<tr>
-<th>2</th>
-<td>94</td>
-<td>35-44</td>
-<td>1.183696</td>
-<td>65.742184</td>
-<td>20.852704</td>
-<td>Female</td>
-<td>1.0</td>
-</tr>
-<tr>
-<th>3</th>
-<td>95</td>
-<td>18-24</td>
-<td>3.716007</td>
-<td>67.624539</td>
-<td>10.522336</td>
-<td>Female</td>
-<td>1.0</td>
-</tr>
-<tr>
-<th>4</th>
-<td>98</td>
-<td>35-44</td>
-<td>16.751931</td>
-<td>44.868651</td>
-<td>40.377325</td>
-<td>Female</td>
-<td>1.0</td>
+<th>target</th>
+<td>55.100</td>
 </tr>
 </tbody>
 </table>
@@ -9610,7 +8792,143 @@ Output rows: 912
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=f73b66bc">
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=401af0aa">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h2 id="Choosing-the-model-(model=)-and-its-inputs-(variables=)">Choosing the model (<code>model=</code>) and its inputs (<code>variables=</code>)<a class="anchor-link" href="#Choosing-the-model-(model=)-and-its-inputs-(variables=)">¶</a></h2><p>The estimator is chosen with <code>model=</code> and the covariate inputs with <code>variables=</code>.
+<code>model=</code> accepts <code>"auto"</code> (a <code>HistGradientBoosting</code> regressor/classifier picked by
+outcome type), a single sklearn estimator (cloned per outcome), a
+<code>{"_discrete": clf, "_continuous": reg}</code> <strong>type map</strong>, or a
+<code>{outcome_column: estimator}</code> <strong>column map</strong>. <code>variables=</code> restricts the model inputs
+<code>X</code> to a subset of the covariates (default: all of them).</p>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=bd9dfa28">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [10]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.linear_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">LinearRegression</span><span class="p">,</span> <span class="n">LogisticRegression</span>
+
+<span class="c1"># a single sklearn estimator (cloned per outcome), restricted to a covariate subset:</span>
+<span class="n">bf</span><span class="o">.</span><span class="n">fit_outcome_model</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">LinearRegression</span><span class="p">(),</span> <span class="n">variables</span><span class="o">=</span><span class="p">[</span><span class="s2">"age_group"</span><span class="p">,</span> <span class="s2">"income"</span><span class="p">])</span>
+<span class="n">bf</span><span class="o">.</span><span class="n">outcome_model</span><span class="p">[</span><span class="s2">"X_matrix_columns"</span><span class="p">][:</span><span class="mi">4</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:19:45,261) [outcome_model/fit_outcome_model (line 680)]: outcome_model: outcome 'happiness' (continuous) -&gt; LinearRegression [single LinearRegression]
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child jp-OutputArea-executeResult">
+<div class="jp-OutputPrompt jp-OutputArea-prompt">Out[10]:</div>
+<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain" tabindex="0">
+<pre>['age_group[18-24]', 'age_group[25-34]', 'age_group[35-44]', 'age_group[45+]']</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=178521e4">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h3 id="Weighted-fit-and-the-doubly-robust-special-case">Weighted fit and the doubly-robust special case<a class="anchor-link" href="#Weighted-fit-and-the-doubly-robust-special-case">¶</a></h3><p>The outcome model is <strong>unweighted by default</strong> (<code>weighted=False</code>): it estimates
+<code>E[Y|X]</code> and is usually best left unbiased by the design weights. Passing
+<code>weighted=True</code> fits with the frame's active weights; for a <strong>linear model with an
+intercept</strong>, a weighted-least-squares fit makes the estimate doubly robust with
+respect to those weights, which <code>summary()</code> reports explicitly.</p>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=2a630c3c">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [11]:</div>
+<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="cm-editor cm-s-jupyter">
+<div class="highlight hl-python"><pre><span></span><span class="n">bf</span><span class="o">.</span><span class="n">fit_outcome_model</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">LinearRegression</span><span class="p">(),</span> <span class="n">weighted</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">bf</span><span class="o">.</span><span class="n">predict_outcomes</span><span class="p">(</span><span class="n">on</span><span class="o">=</span><span class="s2">"both"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">bf</span><span class="o">.</span><span class="n">outcomes_hat</span><span class="p">()</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell-outputWrapper">
+<div class="jp-Collapser jp-OutputCollapser jp-Cell-outputCollapser">
+</div>
+<div class="jp-OutputArea jp-Cell-outputArea">
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:19:45,286) [outcome_model/fit_outcome_model (line 680)]: outcome_model: outcome 'happiness' (continuous) -&gt; LinearRegression [single LinearRegression]
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>WARNING (2026-07-22 14:19:45,312) [model_matrix/_prepare_input_model_matrix (line 452)]: Dropping all rows with NAs
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>WARNING (2026-07-22 14:19:45,328) [model_matrix/_prepare_input_model_matrix (line 452)]: Dropping all rows with NAs
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>1 predicted outcome(s): ['happiness_hat']
+Estimator: g-computation (model=LinearRegression()); doubly robust w.r.t. weights `weight` (linear + intercept fit by weighted least squares — the residuals are orthogonal to the design for those weights)
+Mean predicted outcomes (analytic 95% CIs — these treat the predictions as fixed and under-cover the outcome-model estimate; use mean_with_ci(ci_method='bootstrap') for an honest interval):
+source           self  target          self_ci         target_ci
+happiness_hat  53.599  52.216  (52.57, 54.629)  (52.039, 52.394)
+
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=93d87ecb">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h2 id="Binary-outcomes:-classification,-calibration,-and-a-per-type-model-map">Binary outcomes: classification, calibration, and a per-type model map<a class="anchor-link" href="#Binary-outcomes:-classification,-calibration,-and-a-per-type-model-map">¶</a></h2><p>A binary 0/1 outcome is modelled with a classifier and stored as the predicted
+probability <code>P(Y=1)</code> (so the estimate is the target prevalence). <code>calibrate=True</code>
+wraps the classifier in <code>CalibratedClassifierCV</code>. Below, a <code>{"_discrete", "_continuous"}</code> type map routes the binary <code>happy</code> outcome to logistic regression.</p>
+</div>
+</div>
+</div>
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=768ddcbd">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9618,10 +8936,17 @@ Output rows: 912
 <div class="jp-InputPrompt jp-InputArea-prompt">In [12]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Inspect weights by gender - each group was adjusted independently</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"Weight statistics by gender (sample only):"</span><span class="p">)</span>
-<span class="n">sample_only</span> <span class="o">=</span> <span class="n">batch_adjusted_df</span><span class="p">[</span><span class="n">batch_adjusted_df</span><span class="p">[</span><span class="s2">"is_respondent"</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">sample_only</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"gender"</span><span class="p">)[</span><span class="s2">"weight"</span><span class="p">]</span><span class="o">.</span><span class="n">describe</span><span class="p">()</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+<div class="highlight hl-python"><pre><span></span><span class="n">sample_bin</span> <span class="o">=</span> <span class="n">Sample</span><span class="o">.</span><span class="n">from_frame</span><span class="p">(</span>
+    <span class="n">sample_df</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
+        <span class="n">happy</span><span class="o">=</span><span class="p">(</span><span class="n">sample_df</span><span class="p">[</span><span class="s2">"happiness"</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">sample_df</span><span class="p">[</span><span class="s2">"happiness"</span><span class="p">]</span><span class="o">.</span><span class="n">median</span><span class="p">())</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"happiness"</span><span class="p">]),</span>
+    <span class="n">outcome_columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"happy"</span><span class="p">],</span>
+<span class="p">)</span>
+<span class="n">sample_bin</span><span class="o">.</span><span class="n">fit_outcome_model</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="p">{</span><span class="s2">"_discrete"</span><span class="p">:</span> <span class="n">LogisticRegression</span><span class="p">(</span><span class="n">max_iter</span><span class="o">=</span><span class="mi">1000</span><span class="p">),</span> <span class="s2">"_continuous"</span><span class="p">:</span> <span class="n">LinearRegression</span><span class="p">()},</span>
+    <span class="n">calibrate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">sample_bin</span><span class="o">.</span><span class="n">outcome_model</span><span class="p">[</span><span class="s2">"prediction_kind"</span><span class="p">],</span> <span class="n">sample_bin</span><span class="o">.</span><span class="n">outcome_model</span><span class="p">[</span><span class="s2">"calibrated"</span><span class="p">]</span>
 </pre></div>
 </div>
 </div>
@@ -9633,45 +8958,46 @@ Output rows: 912
 <div class="jp-OutputArea jp-Cell-outputArea">
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>Weight statistics by gender (sample only):
-        count    mean     std    min    25%     50%     75%     max
-gender                                                             
-Female  268.0  16.981  11.905  6.785  9.566  13.702  19.158  85.648
-Male    644.0   7.067   4.981  2.913  3.260   5.776   9.235  35.370
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>WARNING (2026-07-22 14:19:45,385) [input_validation/guess_id_column (line 336)]: Guessed id column name id for the data
 </pre>
 </div>
 </div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>WARNING (2026-07-22 14:19:45,395) [sample_frame/from_frame (line 377)]: No weights passed. Adding a 'weight' column and setting all values to 1
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:19:45,399) [outcome_model/fit_outcome_model (line 680)]: outcome_model: outcome 'happy' (discrete) -&gt; LogisticRegression [model['_discrete']]
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child jp-OutputArea-executeResult">
+<div class="jp-OutputPrompt jp-OutputArea-prompt">Out[12]:</div>
+<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain" tabindex="0">
+<pre>({'happy': 'proba'}, True)</pre>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=09002e25">
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=bb1554c3">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="Alternative-Weighting-Methods">Alternative Weighting Methods<a class="anchor-link" href="#Alternative-Weighting-Methods">¶</a></h2><p>The CLI supports three adjustment methods:</p>
-<ul>
-<li><strong>IPW (Inverse Probability Weighting)</strong>: The default method, uses logistic regression to estimate propensity scores</li>
-<li><strong>CBPS (Covariate Balancing Propensity Score)</strong>: Balances covariates while estimating propensity scores</li>
-<li><strong>Rake (Raking/Iterative Proportional Fitting)</strong>: Adjusts weights iteratively to match marginal distributions</li>
-</ul>
+<h2 id="Fit-and-predict-in-one-call">Fit and predict in one call<a class="anchor-link" href="#Fit-and-predict-in-one-call">¶</a></h2><p><code>fit_predict_outcomes(...)</code> is the sklearn-style <code>fit_predict</code>: it fits the model and
+then writes the <code>&lt;outcome&gt;_hat</code> columns in a single call.</p>
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=c4b8b807">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="Example:-CBPS-Method">Example: CBPS Method<a class="anchor-link" href="#Example:-CBPS-Method">¶</a></h3><p>CBPS simultaneously optimizes covariate balance and propensity score estimation:</p>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=d06ac9b1">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=ed7adc65">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9679,33 +9005,8 @@ Male    644.0   7.067   4.981  2.913  3.260   5.776   9.235  35.370
 <div class="jp-InputPrompt jp-InputArea-prompt">In [13]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmpdir</span><span class="p">:</span>
-    <span class="n">input_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="s2">"input.csv"</span><span class="p">)</span>
-    <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="s2">"weights_cbps.csv"</span><span class="p">)</span>
-    <span class="n">diagnostics_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="s2">"diagnostics_cbps.csv"</span><span class="p">)</span>
-
-    <span class="n">load_data_input_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="s2">"python"</span><span class="p">,</span>
-        <span class="s2">"-m"</span><span class="p">,</span>
-        <span class="s2">"balance.cli"</span><span class="p">,</span>
-        <span class="s2">"--input_file"</span><span class="p">,</span> <span class="n">input_path</span><span class="p">,</span>
-        <span class="s2">"--output_file"</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span>
-        <span class="s2">"--diagnostics_output_file"</span><span class="p">,</span> <span class="n">diagnostics_path</span><span class="p">,</span>
-        <span class="s2">"--covariate_columns"</span><span class="p">,</span> <span class="s2">"gender,age_group,income"</span><span class="p">,</span>
-        <span class="s2">"--method"</span><span class="p">,</span> <span class="s2">"cbps"</span><span class="p">,</span>
-    <span class="p">]</span>
-
-    <span class="nb">print</span><span class="p">(</span><span class="s2">"CLI command with CBPS method:"</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cmd</span><span class="p">))</span>
-    <span class="n">subprocess</span><span class="o">.</span><span class="n">check_call</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
-
-    <span class="n">cbps_diagnostics_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">diagnostics_path</span><span class="p">)</span>
-
-<span class="c1"># Verify the method used</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Adjustment method used:"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">cbps_diagnostics_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"metric == 'adjustment_method'"</span><span class="p">)[[</span><span class="s2">"var"</span><span class="p">,</span> <span class="s2">"val"</span><span class="p">]])</span>
+<div class="highlight hl-python"><pre><span></span><span class="n">bf</span><span class="o">.</span><span class="n">fit_predict_outcomes</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="s2">"auto"</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">"both"</span><span class="p">)</span>
+<span class="n">bf</span><span class="o">.</span><span class="n">outcomes_hat</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -9717,170 +9018,72 @@ Male    644.0   7.067   4.981  2.913  3.260   5.776   9.235  35.370
 <div class="jp-OutputArea jp-Cell-outputArea">
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>CLI command with CBPS method:
-python -m balance.cli --input_file /tmp/tmpnxu65cpa/input.csv --output_file /tmp/tmpnxu65cpa/weights_cbps.csv --diagnostics_output_file /tmp/tmpnxu65cpa/diagnostics_cbps.csv --covariate_columns gender,age_group,income --method cbps
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:19:45,523) [outcome_model/fit_outcome_model (line 680)]: outcome_model: outcome 'happiness' (continuous) -&gt; HistGradientBoostingRegressor [auto]
 </pre>
 </div>
 </div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:16:15,560) [__init__/&lt;module&gt; (line 77)]: Using balance version 0.22.0.x
-INFO (2026-07-22 14:16:15,560) [__init__/&lt;module&gt; (line 82)]: 
-balance (Version 0.22.0.x) loaded:
-    📖 Documentation: https://import-balance.org/
-    🛠️ Help / Issues: https://github.com/facebookresearch/balance/issues/
-    📄 Citation:
-        Sarig, T., Galili, T., &amp; Eilat, R. (2023).
-        balance - a Python package for balancing biased data samples.
-        https://arxiv.org/abs/2307.06024
+<div class="jp-OutputArea-child jp-OutputArea-executeResult">
+<div class="jp-OutputPrompt jp-OutputArea-prompt">Out[13]:</div>
+<div class="jp-RenderedHTMLCommon jp-RenderedHTML jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/html" tabindex="0">
+<div>
+<style scoped="">
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
 
-    Tip: You can view this message anytime with balance.help()
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
 
-INFO (2026-07-22 14:16:15,562) [cli/main (line 1343)]: Running cli.main() using balance version 0.22.0.x
-INFO (2026-07-22 14:16:15,562) [cli/main (line 1378)]: Attributes used by main() for running adjust: {'transformations': 'default', 'formula': None, 'penalty_factor': None, 'one_hot_encoding': True, 'max_de': 1.5, 'lambda_min': 1e-05, 'lambda_max': 10, 'num_lambdas': 250, 'weight_trimming_mean_ratio': 20.0, 'sample_cls': &lt;class 'balance.sample_class.Sample'&gt;, 'sample_package_name': 'balance', 'sample_package_version': '0.22.0.x'}
-INFO (2026-07-22 14:16:15,571) [cli/load_and_check_input (line 1173)]: Number of rows in input file: 11000
-INFO (2026-07-22 14:16:15,571) [cli/load_and_check_input (line 1179)]: Number of columns in input file: 7
-WARNING (2026-07-22 14:16:15,574) [sample_frame/from_frame (line 330)]: Casting id column to string
-WARNING (2026-07-22 14:16:15,584) [pandas_utils/_warn_of_df_dtypes_change (line 519)]: The dtypes of SampleFrame._df were changed from the original dtypes of the input df, here are the differences - 
-WARNING (2026-07-22 14:16:15,584) [pandas_utils/_warn_of_df_dtypes_change (line 530)]: The (old) dtypes that changed for df (before the change):
-WARNING (2026-07-22 14:16:15,585) [pandas_utils/_warn_of_df_dtypes_change (line 533)]: 
-id               int64
-is_respondent    int64
-dtype: object
-WARNING (2026-07-22 14:16:15,585) [pandas_utils/_warn_of_df_dtypes_change (line 534)]: The (new) dtypes saved in df (after the change):
-WARNING (2026-07-22 14:16:15,586) [pandas_utils/_warn_of_df_dtypes_change (line 535)]: 
-id                   str
-is_respondent    float64
-dtype: object
-INFO (2026-07-22 14:16:15,588) [cli/process_batch (line 988)]: balance sample object: 
-        balance Sample object
-        1000 observations x 3 variables: gender,age_group,income
-        id_column: id, weight_column: weight,
-        outcome_columns: None
-        
-WARNING (2026-07-22 14:16:15,590) [sample_frame/from_frame (line 330)]: Casting id column to string
-WARNING (2026-07-22 14:16:15,603) [pandas_utils/_warn_of_df_dtypes_change (line 519)]: The dtypes of SampleFrame._df were changed from the original dtypes of the input df, here are the differences - 
-WARNING (2026-07-22 14:16:15,603) [pandas_utils/_warn_of_df_dtypes_change (line 530)]: The (old) dtypes that changed for df (before the change):
-WARNING (2026-07-22 14:16:15,604) [pandas_utils/_warn_of_df_dtypes_change (line 533)]: 
-id               int64
-is_respondent    int64
-dtype: object
-WARNING (2026-07-22 14:16:15,604) [pandas_utils/_warn_of_df_dtypes_change (line 534)]: The (new) dtypes saved in df (after the change):
-WARNING (2026-07-22 14:16:15,605) [pandas_utils/_warn_of_df_dtypes_change (line 535)]: 
-id                   str
-is_respondent    float64
-dtype: object
-INFO (2026-07-22 14:16:15,608) [cli/process_batch (line 999)]: balance target object: 
-        balance Sample object
-        10000 observations x 3 variables: gender,age_group,income
-        id_column: id, weight_column: weight,
-        outcome_columns: None
-        
-INFO (2026-07-22 14:16:15,613) [cbps/cbps (line 535)]: Starting cbps function
-INFO (2026-07-22 14:16:15,615) [adjustment/apply_transformations (line 435)]: Adding the variables: []
-INFO (2026-07-22 14:16:15,615) [adjustment/apply_transformations (line 436)]: Transforming the variables: ['gender', 'age_group', 'income']
-INFO (2026-07-22 14:16:15,622) [adjustment/apply_transformations (line 472)]: Final variables in output: ['gender', 'age_group', 'income']
-INFO (2026-07-22 14:16:15,740) [cbps/cbps (line 587)]: The formula used to build the model matrix: ['income + gender + age_group + _is_na_gender']
-INFO (2026-07-22 14:16:15,741) [cbps/cbps (line 598)]: The number of columns in the model matrix: 16
-INFO (2026-07-22 14:16:15,741) [cbps/cbps (line 599)]: The number of rows in the model matrix: 11000
-INFO (2026-07-22 14:16:15,748) [cbps/cbps (line 667)]: Finding initial estimator for GMM optimization
-</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:16:15,922) [cbps/cbps (line 694)]: Finding initial estimator for GMM optimization that minimizes the balance loss
-</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:16:17,274) [cbps/cbps (line 730)]: Running GMM optimization
-</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:16:20,052) [cbps/cbps (line 881)]: Done cbps function
-INFO (2026-07-22 14:16:20,054) [cli/process_batch (line 1022)]: Succeeded with adjusting sample to target
-INFO (2026-07-22 14:16:20,058) [cli/process_batch (line 1023)]: balance adjusted object: 
-        Adjusted balance Sample object with target set using cbps
-        1000 observations x 3 variables: gender,age_group,income,weight_pre_adjust,weight_adjusted_1
-        id_column: id, weight_column: weight,
-        outcome_columns: None
-        
-        adjustment details:
-            method: cbps
-            design effect (Deff): 1.500
-            effective sample size proportion (ESSP): 0.667
-            effective sample size (ESS): 666.7
-                
-            target:
-                 
-	        balance Sample object
-	        10000 observations x 3 variables: gender,age_group,income
-	        id_column: id, weight_column: weight,
-	        outcome_columns: None
-	        
-            3 common variables: gender,age_group,income
-            
-INFO (2026-07-22 14:16:20,058) [cli/process_batch (line 1025)]: Condition on which rows to keep for diagnostics: None 
-INFO (2026-07-22 14:16:20,058) [cli/process_batch (line 1029)]: Names of columns to keep for diagnostics: None 
-INFO (2026-07-22 14:16:20,058) [balance_frame/diagnostics (line 3904)]: Starting computation of diagnostics of the fitting
-</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:16:20,329) [balance_frame/diagnostics (line 3931)]: Done computing diagnostics
-INFO (2026-07-22 14:16:20,334) [cli/process_batch (line 1040)]: balance diagnostics object:                          metric       val            var
-0                          size    1000.0     sample_obs
-1                          size       3.0  sample_covars
-2                          size   10000.0     target_obs
-3                          size       3.0  target_covars
-4           weights_diagnostics       1.5  design_effect
-..                          ...       ...            ...
-86  covar_main_asmd_improvement  0.205323         income
-87     covar_main_asmd_adjusted  0.175444     mean(asmd)
-88   covar_main_asmd_unadjusted  0.326799     mean(asmd)
-89  covar_main_asmd_improvement  0.151354     mean(asmd)
-90           adjustment_failure         0           None
-
-[91 rows x 3 columns]
-INFO (2026-07-22 14:16:20,336) [cli/main (line 1432)]: Done fitting the model, writing output
-</pre>
-</div>
-</div>
-<div class="jp-OutputArea-child">
-<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>
-Adjustment method used:
-     var  val
-28  cbps  0.0
-</pre>
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+<thead>
+<tr style="text-align: right;">
+<th></th>
+<th>happiness_hat</th>
+</tr>
+<tr>
+<th>source</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th>self</th>
+<td>53.242</td>
+</tr>
+<tr>
+<th>target</th>
+<td>54.818</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=8ca0f5ec">
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=a5e6cf88">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="Example:-Rake-Method">Example: Rake Method<a class="anchor-link" href="#Example:-Rake-Method">¶</a></h3><p>Raking iteratively adjusts weights to match target marginal distributions:</p>
+<h2 id="Under-the-hood:-the-pure-DataFrame-API">Under the hood: the pure DataFrame API<a class="anchor-link" href="#Under-the-hood:-the-pure-DataFrame-API">¶</a></h2><p>The frame methods above wrap pure functions in <code>balance.outcome_models</code> that operate
+on plain DataFrames: <code>fit_outcome_model</code> / <code>predict_outcome</code>, the reusable
+<code>bootstrap_outcome_estimate</code> engine, and <code>learner_from_model</code> (which reconstructs the
+per-outcome estimators). <code>weighted_r2</code> (in <code>stats_and_plots</code>) is the weighted
+regression-fit metric behind the stored <code>perf</code>, and <code>add_outcomes_hat_column</code> attaches
+a <code>&lt;outcome&gt;_hat</code> column directly.</p>
 </div>
 </div>
 </div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=166ba565">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=e2e588f0">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -9888,33 +9091,29 @@ Adjustment method used:
 <div class="jp-InputPrompt jp-InputArea-prompt">In [14]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmpdir</span><span class="p">:</span>
-    <span class="n">input_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="s2">"input.csv"</span><span class="p">)</span>
-    <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="s2">"weights_rake.csv"</span><span class="p">)</span>
-    <span class="n">diagnostics_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="s2">"diagnostics_rake.csv"</span><span class="p">)</span>
+<div class="highlight hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">balance.outcome_models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">fit_outcome_model</span><span class="p">,</span>
+    <span class="n">predict_outcome</span><span class="p">,</span>
+    <span class="n">learner_from_model</span><span class="p">,</span>
+    <span class="n">bootstrap_outcome_estimate</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">balance.stats_and_plots.weighted_stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">weighted_r2</span>
 
-    <span class="n">load_data_input_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">covars_R</span><span class="p">,</span> <span class="n">y_R</span> <span class="o">=</span> <span class="n">sample</span><span class="o">.</span><span class="n">covars</span><span class="p">()</span><span class="o">.</span><span class="n">df</span><span class="p">,</span> <span class="n">sample</span><span class="o">.</span><span class="n">outcomes</span><span class="p">()</span><span class="o">.</span><span class="n">df</span>
+<span class="n">w_R</span> <span class="o">=</span> <span class="n">sample</span><span class="o">.</span><span class="n">weights</span><span class="p">()</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
 
-    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="s2">"python"</span><span class="p">,</span>
-        <span class="s2">"-m"</span><span class="p">,</span>
-        <span class="s2">"balance.cli"</span><span class="p">,</span>
-        <span class="s2">"--input_file"</span><span class="p">,</span> <span class="n">input_path</span><span class="p">,</span>
-        <span class="s2">"--output_file"</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span>
-        <span class="s2">"--diagnostics_output_file"</span><span class="p">,</span> <span class="n">diagnostics_path</span><span class="p">,</span>
-        <span class="s2">"--covariate_columns"</span><span class="p">,</span> <span class="s2">"gender,age_group,income"</span><span class="p">,</span>
-        <span class="s2">"--method"</span><span class="p">,</span> <span class="s2">"rake"</span><span class="p">,</span>
-    <span class="p">]</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">fit_outcome_model</span><span class="p">(</span><span class="n">covars_R</span><span class="p">,</span> <span class="n">y_R</span><span class="p">,</span> <span class="n">sample_weight</span><span class="o">=</span><span class="n">w_R</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">"auto"</span><span class="p">)</span>  <span class="c1"># pure fit -&gt; dict</span>
+<span class="n">yhat_R</span> <span class="o">=</span> <span class="n">predict_outcome</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">covars_R</span><span class="p">)[</span><span class="s2">"happiness"</span><span class="p">]</span>                     <span class="c1"># pure replay</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"weighted R2:"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">weighted_r2</span><span class="p">(</span><span class="n">y_R</span><span class="p">[</span><span class="s2">"happiness"</span><span class="p">],</span> <span class="n">yhat_R</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="n">w_R</span><span class="p">),</span> <span class="mi">3</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"reconstructed learners:"</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">learner_from_model</span><span class="p">(</span><span class="n">model</span><span class="p">)))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"bootstrap:"</span><span class="p">,</span> <span class="n">bootstrap_outcome_estimate</span><span class="p">(</span>
+    <span class="n">covars_R</span><span class="p">,</span> <span class="n">y_R</span><span class="p">,</span> <span class="n">w_R</span><span class="p">,</span> <span class="n">target</span><span class="o">.</span><span class="n">covars</span><span class="p">()</span><span class="o">.</span><span class="n">df</span><span class="p">,</span> <span class="n">target</span><span class="o">.</span><span class="n">weights</span><span class="p">()</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">fit_kwargs</span><span class="o">=</span><span class="p">{</span><span class="s2">"model"</span><span class="p">:</span> <span class="n">LinearRegression</span><span class="p">()},</span> <span class="n">n_bootstrap</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="mi">2020</span><span class="p">,</span>  <span class="c1"># fewer replicates just to demo the API</span>
+<span class="p">)[</span><span class="s2">"happiness"</span><span class="p">])</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="s2">"CLI command with rake method:"</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cmd</span><span class="p">))</span>
-    <span class="n">subprocess</span><span class="o">.</span><span class="n">check_call</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
-
-    <span class="n">rake_diagnostics_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">diagnostics_path</span><span class="p">)</span>
-
-<span class="c1"># Verify the method used</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Adjustment method used:"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">rake_diagnostics_df</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"metric == 'adjustment_method'"</span><span class="p">)[[</span><span class="s2">"var"</span><span class="p">,</span> <span class="s2">"val"</span><span class="p">]])</span>
+<span class="c1"># attach a predicted-outcome column directly (the low-level data-model accessor):</span>
+<span class="n">sample</span><span class="o">.</span><span class="n">add_outcomes_hat_column</span><span class="p">(</span><span class="s2">"happiness_hat"</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">yhat_R</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">covars_R</span><span class="o">.</span><span class="n">index</span><span class="p">))</span>
+<span class="n">sample</span><span class="o">.</span><span class="n">outcomes_hat_columns</span>
 </pre></div>
 </div>
 </div>
@@ -9926,162 +9125,71 @@ Adjustment method used:
 <div class="jp-OutputArea jp-Cell-outputArea">
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
-<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>CLI command with rake method:
-python -m balance.cli --input_file /tmp/tmpyrceqtc1/input.csv --output_file /tmp/tmpyrceqtc1/weights_rake.csv --diagnostics_output_file /tmp/tmpyrceqtc1/diagnostics_rake.csv --covariate_columns gender,age_group,income --method rake
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:19:45,835) [outcome_model/fit_outcome_model (line 680)]: outcome_model: outcome 'happiness' (continuous) -&gt; HistGradientBoostingRegressor [auto]
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:16:22,947) [__init__/&lt;module&gt; (line 77)]: Using balance version 0.22.0.x
-INFO (2026-07-22 14:16:22,947) [__init__/&lt;module&gt; (line 82)]: 
-balance (Version 0.22.0.x) loaded:
-    📖 Documentation: https://import-balance.org/
-    🛠️ Help / Issues: https://github.com/facebookresearch/balance/issues/
-    📄 Citation:
-        Sarig, T., Galili, T., &amp; Eilat, R. (2023).
-        balance - a Python package for balancing biased data samples.
-        https://arxiv.org/abs/2307.06024
-
-    Tip: You can view this message anytime with balance.help()
-
-INFO (2026-07-22 14:16:22,949) [cli/main (line 1343)]: Running cli.main() using balance version 0.22.0.x
-INFO (2026-07-22 14:16:22,949) [cli/main (line 1378)]: Attributes used by main() for running adjust: {'transformations': 'default', 'formula': None, 'penalty_factor': None, 'one_hot_encoding': True, 'max_de': 1.5, 'lambda_min': 1e-05, 'lambda_max': 10, 'num_lambdas': 250, 'weight_trimming_mean_ratio': 20.0, 'sample_cls': &lt;class 'balance.sample_class.Sample'&gt;, 'sample_package_name': 'balance', 'sample_package_version': '0.22.0.x'}
-INFO (2026-07-22 14:16:22,957) [cli/load_and_check_input (line 1173)]: Number of rows in input file: 11000
-INFO (2026-07-22 14:16:22,957) [cli/load_and_check_input (line 1179)]: Number of columns in input file: 7
-WARNING (2026-07-22 14:16:22,960) [sample_frame/from_frame (line 330)]: Casting id column to string
-WARNING (2026-07-22 14:16:22,970) [pandas_utils/_warn_of_df_dtypes_change (line 519)]: The dtypes of SampleFrame._df were changed from the original dtypes of the input df, here are the differences - 
-WARNING (2026-07-22 14:16:22,970) [pandas_utils/_warn_of_df_dtypes_change (line 530)]: The (old) dtypes that changed for df (before the change):
-WARNING (2026-07-22 14:16:22,971) [pandas_utils/_warn_of_df_dtypes_change (line 533)]: 
-id               int64
-is_respondent    int64
-dtype: object
-WARNING (2026-07-22 14:16:22,971) [pandas_utils/_warn_of_df_dtypes_change (line 534)]: The (new) dtypes saved in df (after the change):
-WARNING (2026-07-22 14:16:22,972) [pandas_utils/_warn_of_df_dtypes_change (line 535)]: 
-id                   str
-is_respondent    float64
-dtype: object
-INFO (2026-07-22 14:16:22,974) [cli/process_batch (line 988)]: balance sample object: 
-        balance Sample object
-        1000 observations x 3 variables: gender,age_group,income
-        id_column: id, weight_column: weight,
-        outcome_columns: None
-        
-WARNING (2026-07-22 14:16:22,976) [sample_frame/from_frame (line 330)]: Casting id column to string
-WARNING (2026-07-22 14:16:22,989) [pandas_utils/_warn_of_df_dtypes_change (line 519)]: The dtypes of SampleFrame._df were changed from the original dtypes of the input df, here are the differences - 
-WARNING (2026-07-22 14:16:22,989) [pandas_utils/_warn_of_df_dtypes_change (line 530)]: The (old) dtypes that changed for df (before the change):
-WARNING (2026-07-22 14:16:22,990) [pandas_utils/_warn_of_df_dtypes_change (line 533)]: 
-id               int64
-is_respondent    int64
-dtype: object
-WARNING (2026-07-22 14:16:22,990) [pandas_utils/_warn_of_df_dtypes_change (line 534)]: The (new) dtypes saved in df (after the change):
-WARNING (2026-07-22 14:16:22,991) [pandas_utils/_warn_of_df_dtypes_change (line 535)]: 
-id                   str
-is_respondent    float64
-dtype: object
-INFO (2026-07-22 14:16:22,994) [cli/process_batch (line 999)]: balance target object: 
-        balance Sample object
-        10000 observations x 3 variables: gender,age_group,income
-        id_column: id, weight_column: weight,
-        outcome_columns: None
-        
-INFO (2026-07-22 14:16:23,001) [adjustment/apply_transformations (line 435)]: Adding the variables: []
-INFO (2026-07-22 14:16:23,001) [adjustment/apply_transformations (line 436)]: Transforming the variables: ['gender', 'age_group', 'income']
-INFO (2026-07-22 14:16:23,007) [adjustment/apply_transformations (line 472)]: Final variables in output: ['gender', 'age_group', 'income']
-INFO (2026-07-22 14:16:23,048) [rake/rake (line 623)]: Final covariates and levels that will be used in raking: {'age_group': ['18-24', '25-34', '35-44', '45+'], 'gender': ['Female', 'Male', '__NaN__'], 'income': ['(-0.0009997440000000001, 0.44]', '(0.44, 1.664]', '(1.664, 3.472]', '(11.312, 15.139]', '(15.139, 20.567]', '(20.567, 29.504]', '(29.504, 128.536]', '(3.472, 5.663]', '(5.663, 8.211]', '(8.211, 11.312]']}.
-INFO (2026-07-22 14:16:23,068) [cli/process_batch (line 1022)]: Succeeded with adjusting sample to target
-INFO (2026-07-22 14:16:23,072) [cli/process_batch (line 1023)]: balance adjusted object: 
-        Adjusted balance Sample object with target set using rake
-        1000 observations x 3 variables: gender,age_group,income,weight_pre_adjust,weight_adjusted_1
-        id_column: id, weight_column: weight,
-        outcome_columns: None
-        
-        adjustment details:
-            method: rake
-            design effect (Deff): 3.774
-            effective sample size proportion (ESSP): 0.265
-            effective sample size (ESS): 265.0
-                
-            target:
-                 
-	        balance Sample object
-	        10000 observations x 3 variables: gender,age_group,income
-	        id_column: id, weight_column: weight,
-	        outcome_columns: None
-	        
-            3 common variables: gender,age_group,income
-            
-INFO (2026-07-22 14:16:23,072) [cli/process_batch (line 1025)]: Condition on which rows to keep for diagnostics: None 
-INFO (2026-07-22 14:16:23,072) [cli/process_batch (line 1029)]: Names of columns to keep for diagnostics: None 
-INFO (2026-07-22 14:16:23,072) [balance_frame/diagnostics (line 3904)]: Starting computation of diagnostics of the fitting
+<pre>INFO (2026-07-22 14:19:46,098) [outcome_model/fit_outcome_model (line 680)]: outcome_model: outcome 'happiness' (continuous) -&gt; LinearRegression [single LinearRegression]
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
-<pre>INFO (2026-07-22 14:16:23,336) [balance_frame/diagnostics (line 3931)]: Done computing diagnostics
-INFO (2026-07-22 14:16:23,340) [cli/process_batch (line 1040)]: balance diagnostics object:                          metric           val            var
-0                          size   1000.000000     sample_obs
-1                          size      3.000000  sample_covars
-2                          size  10000.000000     target_obs
-3                          size      3.000000  target_covars
-4           weights_diagnostics      3.773786  design_effect
-..                          ...           ...            ...
-64  covar_main_asmd_improvement      0.462436         income
-65     covar_main_asmd_adjusted      0.014651     mean(asmd)
-66   covar_main_asmd_unadjusted      0.326799     mean(asmd)
-67  covar_main_asmd_improvement      0.312147     mean(asmd)
-68           adjustment_failure      0.000000           None
-
-[69 rows x 3 columns]
-INFO (2026-07-22 14:16:23,342) [cli/main (line 1432)]: Done fitting the model, writing output
+<pre>WARNING (2026-07-22 14:19:46,127) [model_matrix/_prepare_input_model_matrix (line 452)]: Dropping all rows with NAs
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="application/vnd.jupyter.stderr" tabindex="0">
+<pre>INFO (2026-07-22 14:19:46,142) [outcome_model/bootstrap_outcome_estimate (line 1066)]: bootstrap_outcome_estimate: fitting 50 bootstrap replicate(s) (per-replicate logs suppressed).
 </pre>
 </div>
 </div>
 <div class="jp-OutputArea-child">
 <div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
-<pre>
-Adjustment method used:
-     var  val
-28  rake  0.0
+<pre>weighted R2: 0.652
+reconstructed learners: ['happiness']
 </pre>
 </div>
 </div>
+<div class="jp-OutputArea-child">
+<div class="jp-OutputPrompt jp-OutputArea-prompt"></div>
+<div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain" tabindex="0">
+<pre>bootstrap: {'estimate': 52.4895116622256, 'ci_low': 51.4597169599102, 'ci_high': 53.555405431160345}
+</pre>
+</div>
+</div>
+<div class="jp-OutputArea-child jp-OutputArea-executeResult">
+<div class="jp-OutputPrompt jp-OutputArea-prompt">Out[14]:</div>
+<div class="jp-RenderedText jp-OutputArea-output jp-OutputArea-executeResult" data-mime-type="text/plain" tabindex="0">
+<pre>['happiness_hat']</pre>
 </div>
 </div>
 </div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=3952ec2a">
+</div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=d787bb4c">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="Next-steps">Next steps<a class="anchor-link" href="#Next-steps">¶</a></h2><ul>
-<li>Try <code>--method cbps</code> or <code>--method rake</code> for alternative weighting approaches.</li>
-<li>Use <code>--outcome_columns</code> to control which columns are treated as outcomes.</li>
-<li>Supply <code>--ipw_logistic_regression_kwargs</code> to tune the IPW model.</li>
-<li>Use <code>--succeed_on_weighting_failure</code> for pipelines where you want null weights instead of errors.</li>
-<li>Explore <code>--covariate_columns_for_diagnostics</code> and <code>--rows_to_keep_for_diagnostics</code> to customize diagnostic output.</li>
+<h2 id="Where-to-go-next">Where to go next<a class="anchor-link" href="#Where-to-go-next">¶</a></h2><ul>
+<li>The <a href="./quickstart">Quickstart</a> covers the reweighting workflow (diagnostics, adjustment methods, weights) that produces the <code>μ̂_IPW</code> estimate above.</li>
+<li><code>outcomes().weights_impact_on_outcome_ss()</code> is a <em>diagnostic</em> (not a third estimator): it reports how much the weights move the outcome mean, with a significance test.</li>
+<li>The <a href="https://github.com/facebookresearch/balance/blob/main/docs/architecture/architecture_0_23_0.md">outcome-model design doc</a> covers the estimator theory and the AIPW roadmap.</li>
 </ul>
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=12dfbd73">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h2 id="Session-info">Session info<a class="anchor-link" href="#Session-info">¶</a></h2><p>For reproducibility, here is the session information:</p>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=dd0fa8eb">
+</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=f6cc6a46">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
@@ -10089,7 +9197,8 @@ Adjustment method used:
 <div class="jp-InputPrompt jp-InputArea-prompt">In [15]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">session_info</span>
+<div class="highlight hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">session_info</span>
+
 <span class="n">session_info</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="n">html</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dependencies</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -10107,6 +9216,7 @@ Adjustment method used:
 balance             0.22.0.x
 pandas              3.0.3
 session_info        v1.0.1
+sklearn             1.9.0
 -----
 PIL                         12.3.0
 ada92cb5d92a588d1b93__mypyc NA
@@ -10178,7 +9288,6 @@ scipy                       1.18.0
 seaborn                     0.13.2
 send2trash                  NA
 six                         1.17.0
-sklearn                     1.9.0
 sphinxcontrib               NA
 stack_data                  0.6.3
 statsmodels                 0.14.6
@@ -10204,7 +9313,7 @@ notebook            7.6.1
 Python 3.12.13 (main, Jun 16 2026, 22:05:08) [GCC 13.3.0]
 Linux-6.17.0-1020-azure-x86_64-with-glibc2.39
 -----
-Session information updated at 2026-07-22 14:16
+Session information updated at 2026-07-22 14:19
 </pre>
 </div>
 </div>
