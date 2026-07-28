@@ -66,6 +66,7 @@ from typing import Any, Dict, Iterator, List, Tuple
 import numpy as np
 import pandas as pd
 from balance.stats_and_plots.weighted_stats import weighted_mean, weighted_r2
+from balance.stats_and_plots.weights_stats import _check_weights_series_are_valid
 from balance.typing import OutcomeLearner
 from balance.utils.input_validation import (
     _assert_type,
@@ -283,7 +284,15 @@ def _restore_categorical_levels(
             restore_levels = [
                 level for level in levels if level != _NA_CATEGORY_SENTINEL
             ]
-            out[col] = pd.Categorical(out[col], categories=restore_levels)
+            # Pandas 3 warns when constructing a
+            # Categorical directly from novel, non-null values. Explicitly map
+            # those values to missing first; this is also the replay contract
+            # documented above.
+            values = out[col]
+            known_or_missing = values.isna() | values.isin(restore_levels)
+            out[col] = pd.Categorical(
+                values.where(known_or_missing), categories=restore_levels
+            )
     return out
 
 
@@ -420,17 +429,39 @@ def _prepare_sample_weight(
     """
     if sample_weight is None:
         return False, None, None
-    sample_weight_series = (
-        sample_weight
-        if isinstance(sample_weight, pd.Series)
-        else pd.Series(sample_weight, index=covars_df.index)
-    )
-    # TODO (weights): validate the weights before fitting — reject zero /
-    # negative / NaN / inf sample weights with an actionable error (mirrors
-    # the copilot-instructions weighting-input checklist) rather than passing
-    # them straight to the estimator.
+
+    if isinstance(sample_weight, pd.Series):
+        sample_weight_series = sample_weight
+    else:
+        weight_values = np.asarray(sample_weight)
+        if weight_values.ndim != 1:
+            raise ValueError(
+                "sample_weight must be one-dimensional; "
+                f"got an array with shape {weight_values.shape}."
+            )
+        if len(weight_values) != len(covars_df):
+            raise ValueError(
+                "sample_weight must be the same length as covars_df: "
+                f"expected {len(covars_df)}, got {len(weight_values)}."
+            )
+        sample_weight_series = pd.Series(weight_values, index=covars_df.index)
+
     _check_weighting_methods_input(covars_df, sample_weight_series, "sample")
-    sample_weight_arr = sample_weight_series.to_numpy(dtype=float)
+
+    invalid_value_message = (
+        "sample_weight must contain only finite, strictly positive real numeric values."
+    )
+    try:
+        _check_weights_series_are_valid(
+            sample_weight_series,
+            require_finite=True,
+            require_strictly_positive=True,
+        )
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{invalid_value_message} Validation failed: {exc}") from exc
+    # The shared validator has already proved conversion is safe and all
+    # values satisfy the requested finite/strictly-positive contract.
+    sample_weight_arr = sample_weight_series.to_numpy(dtype=float, na_value=np.nan)
     fit_weight_column: str | None = (
         str(sample_weight_series.name)
         if sample_weight_series.name is not None
