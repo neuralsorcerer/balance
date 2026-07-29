@@ -739,7 +739,7 @@ def seaborn_plot_dist(
     numeric_variables = dfs[0]["df"].select_dtypes(exclude=["object"]).columns.values
 
     for io, o in enumerate(variables):
-        #  Find the maximum number of non-missing values of this variable accross
+        #  Find the maximum number of non-missing values of this variable across
         #  all the dataframes
         n_values = max(len(set(rm_mutual_nas(d["df"].loc[:, o].values))) for d in dfs)
         if n_values == 0:
@@ -1242,7 +1242,7 @@ def plotly_plot_dist(
 
     The plots compare the weighted distributions of an arbitrary number
     of variables from an arbitrary number of DataFrames.
-    Numeric variables are plotted as either qq's using :func:`plotly_plot_qq`, or as kde desnity plots using :func:`plotly_plot_density`.
+    Numeric variables are plotted as either qq's using :func:`plotly_plot_qq`, or as kde density plots using :func:`plotly_plot_density`.
     categorical variables as barplots using :func:`plotly_plot_bar`.
 
     Args:
@@ -1251,7 +1251,7 @@ def plotly_plot_dist(
         variables (Optional[List[str]], optional): a list of variables to use for plotting. Defaults (i.e.: if None) is to use the list of all variables.
         numeric_n_values_threshold (int, optional): How many numbers should be in a column so that it is considered to be a "category"? Defaults to 15.
         weighted (bool, optional): If to use the weights with the plots. Defaults to True.
-        dist_type (Optional[Literal["kde", "qq"]], optional): The type of plot to draw (relevant only for numerical variables). Defaults to None (which fallbacks to "kde").
+        dist_type (Optional[Literal["kde", "qq"]], optional): The type of plot to draw (relevant only for numerical variables). Defaults to None (which falls back to "kde").
         plot_it (bool, optional): If to plot the plots interactively instead of returning a dictionary. Defaults to True.
         return_dict_of_figures (bool, optional): If to return the dictionary containing the plots rather than just returning None. Defaults to False.
             If returned - the dictionary is of plots.
@@ -1323,7 +1323,7 @@ def plotly_plot_dist(
         )
 
     for _, o in enumerate(variables):
-        #  Find the maximum number of non-missing values of this variable accross
+        #  Find the maximum number of non-missing values of this variable across
         #  all the dataframes
 
         # Look at the first element in the dict: (name, type and values)
@@ -1495,7 +1495,7 @@ def plot_dist(
             # defaults to plotly with bar and qq plots. Returns None.
             plot_dist(dfs1, names=["self", "unadjusted", "target"])
 
-            # Using seaborn, deafults to kde plots
+            # Using seaborn, defaults to kde plots
             plot_dist(dfs1, names=["self", "unadjusted", "target"], library="seaborn") # like using dist_type = "kde"
             plot_dist(dfs1, names=["self", "unadjusted", "target"], library="seaborn", dist_type = "hist")
             plot_dist(dfs1, names=["self", "unadjusted", "target"], library="seaborn", dist_type = "qq")

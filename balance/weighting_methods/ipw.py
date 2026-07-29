@@ -274,7 +274,7 @@ def weights_from_link(
         keep_sum_of_weights (bool, optional): to be used in :func:`trim_weights`. Defaults to True.
 
     Returns:
-        pd.Series: A vecotr of normalized weights (for sum of target weights)
+        pd.Series: A vector of normalized weights (for sum of target weights)
 
     Examples:
     .. code-block:: python
@@ -322,8 +322,8 @@ def choose_regularization(
     """Searches through the regularisation parameters of the model and weight
     trimming levels to find the combination with the highest covariate
     ASMD reduction (in sample_df and target_df, NOT in the model matrix used for modeling
-    the response) subject to the design effect being lower than max_de (deafults to 1.5).
-    The function preforms a grid search over the n_asmd_candidates (deafults to 10) models
+    the response) subject to the design effect being lower than max_de (defaults to 1.5).
+    The function performs a grid search over the n_asmd_candidates (defaults to 10) models
     with highest DE lower than max_de (assuming higher DE means more bias reduction).
 
     Args:
@@ -547,7 +547,7 @@ def ipw(
             Smaller penalty on some formula will lead to elements in that formula to get more adjusted, i.e. to have a higher chance to get into the model (and not zero out). A penalty of 0 will make sure the element is included in the model.
             If not provided, assume the same penalty (1) for all variables. Defaults to None.
         one_hot_encoding (bool, optional): whether to encode all factor variables in the model matrix with
-            almost_one_hot_encoding. This is recomended in case of using
+            almost_one_hot_encoding. This is recommended in case of using
             LASSO on the data (Default: False).
             one_hot_encoding_greater_3 creates one-hot-encoding for all
             categorical variables with more than 2 categories (i.e. the
@@ -869,7 +869,7 @@ def ipw(
     foldids = np.resize(range(10), y.shape[0])
     np.random.shuffle(
         foldids
-    )  # shuffels the values of foldid - note that we set the seed in the beginning of the function, so this order is fixed
+    )  # shuffles the values of foldid - note that we set the seed in the beginning of the function, so this order is fixed
     logger.debug(
         f"foldid frequency table {pd.crosstab(index=foldids, columns='count')}"
     )
