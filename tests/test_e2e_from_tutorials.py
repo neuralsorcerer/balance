@@ -660,11 +660,13 @@ Model performance: Model proportion deviance explained: 0.204
 
     def test_adjust_hgb_with_model_matrix(self) -> None:
         from sklearn.ensemble import HistGradientBoostingClassifier
+        from threadpoolctl import threadpool_limits
 
         hgb_mm = HistGradientBoostingClassifier(random_state=0)
-        adjusted_hgb_mm = self.sample_with_target.adjust(
-            model=hgb_mm, use_model_matrix=True
-        )
+        with threadpool_limits(limits=1):
+            adjusted_hgb_mm = self.sample_with_target.adjust(
+                model=hgb_mm, use_model_matrix=True
+            )
         summary = adjusted_hgb_mm.summary()
         _expected_str = """  # noqa: F841
 Adjustment details:
