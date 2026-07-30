@@ -91,23 +91,14 @@ class SampleFrame:
         methods the object behaves as immutable.
     """
 
-    # pyre-fixme[13]: Initialized in _create() which bypasses __init__
     _df: pd.DataFrame
-    # pyre-fixme[13]: Initialized in _create() which bypasses __init__
     _id_column_name: str
-    # pyre-fixme[13]: Initialized in _create() which bypasses __init__
     _column_roles: dict[str, list[str]]
-    # pyre-fixme[13]: Initialized in _create() which bypasses __init__
     _weight_column_name: str | None
-    # pyre-fixme[13]: Initialized in _create() which bypasses __init__
     _weight_metadata: dict[str, Any]
-    # pyre-fixme[13]: Initialized in _create() which bypasses __init__
     _prediction_metadata: dict[str, Any]
-    # pyre-fixme[13]: Initialized in _create() which bypasses __init__
     _outcome_model: dict[str, Any] | None
-    # pyre-fixme[13]: Initialized in _create() which bypasses __init__
     _links: dict[str, Any]
-    # pyre-fixme[13]: Initialized in _create() which bypasses __init__
     _df_dtypes: pd.Series | None
     # SampleFrame is a single-DataFrame container and does NOT manage
     # multi-sample relationships.  _links is initialised to an empty dict
@@ -115,7 +106,19 @@ class SampleFrame:
     # overrides _links with a defaultdict(list) in its own _create().
 
     def __init__(self) -> None:
-        pass
+        # Default-initialise all attributes so pyre sees them as assigned.
+        # The public factory _create() bypasses __init__ via object.__new__
+        # and overwrites every attribute; these defaults are only reached
+        # if a caller instantiates SampleFrame() directly (unsupported).
+        self._df = pd.DataFrame()
+        self._id_column_name = ""
+        self._column_roles = {}
+        self._weight_column_name = None
+        self._weight_metadata = {}
+        self._prediction_metadata = {}
+        self._outcome_model = None
+        self._links = {}
+        self._df_dtypes = None
 
     def __len__(self) -> int:
         """Return the number of rows in the SampleFrame.
