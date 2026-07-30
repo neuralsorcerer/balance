@@ -114,7 +114,7 @@ jobs:
 
   pyre:
     # NOTE: .pyre_configuration.external has "ignore_all_errors" for tests/ - this is intentional.
-    # Meta's internal Pyre uses python/typeshed_experimental with permissive pandas stubs
+    # Meta's internal Pyre uses python/typeshed_internal with permissive pandas stubs
     # (Axes = ... | list | tuple), but external pyre-check-nightly uses stricter typeshed
     # stubs that reject tuple/list for DataFrame index/columns. This causes ~85 false-positive
     # errors in tests that don't occur internally. The main library code (balance/) is still
