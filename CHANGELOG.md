@@ -1,4 +1,4 @@
-# 0.23.0 (unreleased)
+# 0.23.0 (2026-08-04)
 
 ## Highlights
 
@@ -149,7 +149,7 @@ for the design rationale.
 
 ## Contributors
 
-@talgalili
+@talgalili, @neuralsorcerer
 
 # 0.22.0 (2026-07-15)
 
