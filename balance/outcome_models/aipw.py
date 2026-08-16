@@ -254,6 +254,30 @@ def cross_fitted_aipw_point_estimate(
             violate the AIPW scale contract; an outcome lacks enough observed
             rows; or a classification outcome lacks two sufficiently populated
             classes.
+
+    Examples:
+    .. code-block:: python
+
+        import numpy as np
+        import pandas as pd
+        from balance.outcome_models import cross_fitted_aipw_point_estimate
+        from sklearn.linear_model import LinearRegression
+
+        sample_covars = pd.DataFrame({"x": np.arange(6, dtype=float)})
+        outcomes = pd.DataFrame({"y": 1.0 + 2.0 * sample_covars["x"]})
+        target_covars = pd.DataFrame({"x": [0.5, 2.5, 4.5]})
+        estimates = cross_fitted_aipw_point_estimate(
+            sample_covars,
+            outcomes,
+            sample_weight=np.ones(6),
+            target_covars=target_covars,
+            target_weight=np.full(3, 2.0),
+            fit_kwargs={"model": LinearRegression()},
+            n_folds=3,
+            random_seed=7,
+        )
+        round(estimates["y"], 6)
+        # 6.0
     """
     from sklearn.model_selection import KFold
 
