@@ -456,7 +456,7 @@ class TestModelDispatch(balance.testutil.BalanceTestCase):
 
 
 class TestPredictOutcome(balance.testutil.BalanceTestCase):
-    @pytest.mark.requires_sklearn_1_4  # pyre-ignore[56]
+    @pytest.mark.requires_sklearn_1_4
     @unittest.skipUnless(_SKLEARN_1_4_AVAILABLE, "requires sklearn >= 1.4")
     def test_predictions_are_row_aligned_and_index_independent(self) -> None:
         covars_R, outcomes_R, w_R = _make_regression_data()
@@ -470,7 +470,7 @@ class TestPredictOutcome(balance.testutil.BalanceTestCase):
         shifted = predict_outcome(model, probe_idx)["happiness"]
         np.testing.assert_allclose(shifted, ref, atol=1e-8)
 
-    @pytest.mark.requires_sklearn_1_4  # pyre-ignore[56]
+    @pytest.mark.requires_sklearn_1_4
     @unittest.skipUnless(_SKLEARN_1_4_AVAILABLE, "requires sklearn >= 1.4")
     def test_categorical_levels_replay_missing_category(self) -> None:
         """A batch missing a fit-time category must not shift the other codes."""
@@ -490,7 +490,7 @@ class TestPredictOutcome(balance.testutil.BalanceTestCase):
         )["happiness"]
         np.testing.assert_allclose(missing_c, ref[:2], atol=1e-8)
 
-    @pytest.mark.requires_sklearn_1_4  # pyre-ignore[56]
+    @pytest.mark.requires_sklearn_1_4
     @unittest.skipUnless(_SKLEARN_1_4_AVAILABLE, "requires sklearn >= 1.4")
     def test_categorical_levels_replay_novel_category(self) -> None:
         """A novel target category must not steal a fit-time integer code."""
@@ -511,7 +511,7 @@ class TestPredictOutcome(balance.testutil.BalanceTestCase):
         # The novel category still yields a finite prediction (handled as unknown).
         self.assertTrue(np.isfinite(novel[2]))
 
-    @pytest.mark.requires_sklearn_1_4  # pyre-ignore[56]
+    @pytest.mark.requires_sklearn_1_4
     @unittest.skipUnless(_SKLEARN_1_4_AVAILABLE, "requires sklearn >= 1.4")
     def test_categorical_with_na_replays_without_double_na_category(self) -> None:
         """A categorical covariate WITH missing values must replay on the native
@@ -637,7 +637,7 @@ class TestOutcomeModelDictContract(balance.testutil.BalanceTestCase):
 
 
 class TestNativeVsOneHot(balance.testutil.BalanceTestCase):
-    @pytest.mark.requires_sklearn_1_4  # pyre-ignore[56]
+    @pytest.mark.requires_sklearn_1_4
     @unittest.skipUnless(_SKLEARN_1_4_AVAILABLE, "requires sklearn >= 1.4")
     def test_native_categorical_path_used_by_default(self) -> None:
         """On sklearn >= 1.4 the boosting default uses the native-categorical path."""
@@ -647,7 +647,7 @@ class TestNativeVsOneHot(balance.testutil.BalanceTestCase):
         self.assertEqual(model["fit_matrix_type"], "dataframe")
         self.assertIsNotNone(model["categorical_levels"])
 
-    @pytest.mark.requires_sklearn_1_4  # pyre-ignore[56]
+    @pytest.mark.requires_sklearn_1_4
     @unittest.skipUnless(_SKLEARN_1_4_AVAILABLE, "requires sklearn >= 1.4")
     def test_native_and_onehot_give_comparable_predictions(self) -> None:
         """Native-categorical and one-hot-fallback boosting predictions agree closely."""

@@ -3566,7 +3566,7 @@ class TestBalanceFrameSklearnLikeApi(BalanceTestCase):
         self.assertNotIn("fit_sample_weights", cleaned_model)
         self.assertNotIn("fit_target_weights", cleaned_model)
 
-    @pytest.mark.requires_sklearn_1_4  # pyre-ignore[56]
+    @pytest.mark.requires_sklearn_1_4
     @unittest.skipUnless(_SKLEARN_1_4_AVAILABLE, "requires scikit-learn >= 1.4")
     def test_store_fit_matrices_use_model_matrix_false(self) -> None:
         from sklearn.ensemble import HistGradientBoostingClassifier
@@ -5246,7 +5246,7 @@ class TestBalanceFrameSklearnLikeApi(BalanceTestCase):
         with self.assertRaisesRegex(ValueError, "positive sample and target weight"):
             fitted.predict_weights(data=holdout_bf)
 
-    @pytest.mark.requires_sklearn_1_4  # pyre-ignore[56]
+    @pytest.mark.requires_sklearn_1_4
     @unittest.skipUnless(_SKLEARN_1_4_AVAILABLE, "requires scikit-learn >= 1.4")
     def test_blog_v0_20_0_fit_and_predict_weights_on_holdout(self) -> None:
         """Mirrors the "Reusable fit/predict workflows" snippet from the
@@ -5319,7 +5319,7 @@ class TestBalanceFrameSklearnLikeApi(BalanceTestCase):
         self.assertEqual(fitted_weights, [1.689, 1.127, 1.479, 1.083, 1.539, 1.083])
         self.assertEqual(holdout_weights, [2.709, 2.582, 2.709])
 
-    @pytest.mark.requires_sklearn_1_4  # pyre-ignore[56]
+    @pytest.mark.requires_sklearn_1_4
     @unittest.skipUnless(_SKLEARN_1_4_AVAILABLE, "requires scikit-learn >= 1.4")
     def test_blog_v0_20_0_set_fitted_model_holdout_summary(self) -> None:
         """Mirrors the ``bf_holdout.set_fitted_model(fitted)`` +
@@ -5409,7 +5409,7 @@ class TestBalanceFrameSklearnLikeApi(BalanceTestCase):
         self.assertEqual(actual_lines, expected_lines)
 
 
-@pytest.mark.requires_sklearn_1_4  # pyre-ignore[56]
+@pytest.mark.requires_sklearn_1_4
 @unittest.skipUnless(_SKLEARN_1_4_AVAILABLE, "requires scikit-learn >= 1.4")
 class TestBlogV0_20_0SimDataHoldout(BalanceTestCase):
     """End-to-end tests for the v0.20.0 blog snippets that share a single
@@ -5538,7 +5538,6 @@ class TestBlogV0_20_0SimDataHoldout(BalanceTestCase):
     def test_blog_v0_20_0_simdata_holdout_r_indicator(self) -> None:
         """Mirrors ``bf_holdout.weights().r_indicator()`` from the
         "r_indicator for representativeness" section."""
-        # pyrefly: ignore [missing-attribute]
         value = float(self.bf_holdout.weights().r_indicator())
         self.assertAlmostEqual(value, 0.5094452588289895, places=10)
 
@@ -5624,7 +5623,6 @@ class TestBlogV0_20_0SimDataHoldout(BalanceTestCase):
     def test_blog_v0_20_0_simdata_holdout_covars_kld(self) -> None:
         """Mirrors ``bf_holdout.covars().kld()`` from the "Distribution
         distances on raw categoricals" section."""
-        # pyrefly: ignore [missing-attribute]
         kld = self.bf_holdout.covars().kld().round(6)
         self.assertEqual(list(kld.index), ["self", "unadjusted", "unadjusted - self"])
         self.assertEqual(
@@ -7778,7 +7776,7 @@ class TestBalanceFrameSetFittedOutcomeModel(BalanceTestCase):
         # The scored copy's responder no longer carries the stale Ŷ.
         self.assertEqual(scored._sf_sample.outcomes_hat_columns, [])
 
-    @pytest.mark.requires_sklearn_1_4  # pyre-ignore[56]
+    @pytest.mark.requires_sklearn_1_4
     @unittest.skipUnless(_SKLEARN_1_4_AVAILABLE, "requires sklearn >= 1.4")
     def test_transfer_native_categorical_auto_learner(self) -> None:
         # On sklearn>=1.4 the default learner uses the native-categorical path;

@@ -93,7 +93,6 @@ class Testrake(
         - Mismatched DataFrame/weight indexes
         """
         n_rows = 20
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(42)
         sample = pd.DataFrame(
             {
@@ -102,7 +101,6 @@ class Testrake(
                 "weight": [1.0] * n_rows,
             }
         )
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(43)
         target = pd.DataFrame(
             {
@@ -1230,7 +1228,6 @@ class Testrake(
         # correctness is validated by the smaller deterministic tests above)
         n_sample = 200
         n_target = 400
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(2021)
 
         # Create sample DataFrame with mixed data types
@@ -1704,7 +1701,7 @@ class Testrake(
 
         # np.float64 proportions — the common case from Series.to_dict()
         result = _hare_niemeyer_allocation(
-            # pyrefly: ignore [bad-argument-type, bad-assignment]
+            # pyrefly: ignore [bad-assignment]
             {"a": np.float64(0.2), "b": np.float64(0.8)},
             5,
         )
@@ -1712,13 +1709,13 @@ class Testrake(
         self.assertEqual(len(result), 5)
 
         # np.int64 proportions (unnormalized counts)
-        # pyrefly: ignore [bad-argument-type, bad-assignment]
+        # pyrefly: ignore [bad-assignment]
         result2 = _hare_niemeyer_allocation({"x": np.int64(2), "y": np.int64(8)}, 10)
         self.assertEqual(result2.count("x"), 2)
         self.assertEqual(result2.count("y"), 8)
 
         # Mixed Python float and np.float64
-        # pyrefly: ignore [bad-argument-type, bad-assignment]
+        # pyrefly: ignore [bad-assignment]
         result3 = _hare_niemeyer_allocation({"p": 0.3, "q": np.float64(0.7)}, 10)
         self.assertEqual(len(result3), 10)
 
@@ -2334,7 +2331,7 @@ class TestRakeValidation(
                 return 0
 
         with self.assertRaisesRegex(ValueError, "convertible to float"):
-            # pyrefly: ignore [bad-argument-type, bad-assignment]
+            # pyrefly: ignore [bad-assignment]
             _realize_dicts_of_proportions({"var": {"cat": BadReal()}})
 
 

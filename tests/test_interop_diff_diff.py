@@ -144,7 +144,6 @@ class ActiveWeightColumnTest(unittest.TestCase):
         s = balance.Sample.from_frame(df, id_column="id", outcome_columns=["y"])
         # Force weight_column to None to simulate user-constructed Sample
         # with no weights.
-        # pyre-ignore[16]: test-only access to private state.
         s._weight_column_name = None
         with self.assertRaises(ValueError):
             active_weight_column(s)

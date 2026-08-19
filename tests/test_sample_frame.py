@@ -1044,7 +1044,6 @@ class TestSampleFrameIntegration(BalanceTestCase):
             3. Multiple weight columns with add/switch workflow
             4. Numerical equivalence with Sample.from_frame()
         """
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(2021)
         df = pd.DataFrame(
             {
@@ -1892,7 +1891,7 @@ class TestSampleFrameFitOutcomeModelSklearn14(BalanceTestCase):
         )
         return SampleFrame.from_frame(df, outcome_columns=["happiness"])
 
-    @pytest.mark.requires_sklearn_1_4  # pyre-ignore[56]
+    @pytest.mark.requires_sklearn_1_4
     @unittest.skipUnless(_SKLEARN_1_4_AVAILABLE, "requires sklearn >= 1.4")
     def test_native_categorical_fit_predict(self) -> None:
         sf = self._make_sf()

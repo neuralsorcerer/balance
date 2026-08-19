@@ -287,7 +287,6 @@ def test_concat_mismatched_lengths_raises_error() -> None:
 
 def test_build_summary_matches_sample_summary() -> None:
     """Verify _build_summary produces the same output as Sample.summary()."""
-    # pyrefly: ignore [bad-argument-type]
     np.random.seed(42)
     sample = Sample.from_frame(
         pd.DataFrame(
@@ -375,7 +374,6 @@ def test_build_diagnostics_matches_sample_diagnostics() -> None:
 
 def test_build_diagnostics_with_ipw_matches_sample_diagnostics() -> None:
     """Verify _build_diagnostics matches Sample.diagnostics() for IPW adjustment."""
-    # pyrefly: ignore [bad-argument-type]
     np.random.seed(42)
     sample = Sample.from_frame(
         pd.DataFrame(

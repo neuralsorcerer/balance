@@ -87,7 +87,6 @@ def _create_sample_and_target_data() -> pd.DataFrame:
         pd.DataFrame: Combined dataset with sample and target data, including
                      age, gender, id, weight, and is_respondent columns.
     """
-    # pyrefly: ignore [bad-argument-type]
     np.random.seed(TEST_SEED)
     n_sample = SAMPLE_SIZE_SMALL
     n_target = SAMPLE_SIZE_LARGE
@@ -932,7 +931,6 @@ class TestCli(
 
     def test_method_works(self) -> None:
         """Test CLI functionality with different weighting methods (CBPS and IPW)."""
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(TEST_SEED)
         n_sample = SAMPLE_SIZE_SMALL
         n_target = SAMPLE_SIZE_LARGE
@@ -1071,7 +1069,6 @@ class TestCli(
 
     def test_method_works_with_rake(self) -> None:
         """Test CLI functionality with raking weighting method."""
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(TEST_SEED)
         n_sample = SAMPLE_SIZE_SMALL
         n_target = SAMPLE_SIZE_LARGE
