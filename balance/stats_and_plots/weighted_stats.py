@@ -16,8 +16,6 @@ import pandas as pd
 from balance.stats_and_plots.weights_stats import _check_weights_are_valid
 from balance.util import model_matrix, rm_mutual_nas
 from balance.utils.input_validation import _assert_type
-
-# pyrefly: ignore [missing-module-attribute]
 from scipy.stats import norm
 from statsmodels.stats.weightstats import DescrStatsW
 

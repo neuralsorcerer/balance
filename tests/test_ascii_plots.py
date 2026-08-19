@@ -844,7 +844,6 @@ class TestAsciiComparativeHistEndToEnd(balance.testutil.BalanceTestCase):
         blog post (``website/blog/2026/04/26/balance-0-20-0.md``)."""
         from balance.sample_class import Sample
 
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(0)
         sample_df = pd.DataFrame(
             {

@@ -145,11 +145,8 @@ class BalanceFrame:
         False
     """
 
-    # pyre-fixme[13]: Attributes are initialized in _create() / from_frame()
     _sf_sample_pre_adjust: SampleFrame
-    # pyre-fixme[13]: Attributes are initialized in _create() / from_frame()
     _sf_sample: SampleFrame
-    # pyre-fixme[13]: Attributes are initialized in _create() / from_frame()
     _sf_target: SampleFrame | None
     # pyre-fixme[13]: Attributes are initialized in _create() / from_frame()
     _adjustment_model: dict[str, Any] | None
@@ -171,21 +168,13 @@ class BalanceFrame:
         properties stay consistent with ``_sf_sample``.
         """
         if isinstance(self, SampleFrame):
-            # pyrefly: ignore [missing-attribute]
             self._df = responder._df
-            # pyrefly: ignore [missing-attribute]
             self._id_column_name = responder._id_column_name
-            # pyrefly: ignore [missing-attribute]
             self._column_roles = responder._column_roles
-            # pyrefly: ignore [missing-attribute]
             self._weight_column_name = responder._weight_column_name
-            # pyrefly: ignore [missing-attribute]
             self._weight_metadata = responder._weight_metadata
-            # pyrefly: ignore [missing-attribute]
             self._prediction_metadata = responder._prediction_metadata
-            # pyrefly: ignore [missing-attribute]
             self._outcome_model = responder._outcome_model
-            # pyrefly: ignore [missing-attribute]
             self._df_dtypes = responder._df_dtypes
 
     @staticmethod
@@ -256,7 +245,6 @@ class BalanceFrame:
 
     @_df_dtypes.setter
     def _df_dtypes(self, value: pd.Series | None) -> None:
-        # pyrefly: ignore [missing-attribute]
         self._sf_sample._df_dtypes = value
 
     @property
@@ -295,7 +283,6 @@ class BalanceFrame:
                 "Cannot set _df to None. A BalanceFrame must always have a "
                 "backing DataFrame."
             )
-        # pyrefly: ignore [missing-attribute]
         self._sf_sample._df = value
 
     @property
@@ -475,7 +462,6 @@ class BalanceFrame:
         instance._adjustment_history = []
         instance._links = collections.defaultdict(list)
         if target is not None:
-            # pyrefly: ignore [unsupported-operation]
             instance._links["target"] = target
 
         # When the instance is also a SampleFrame (e.g., Sample inherits
@@ -1718,7 +1704,6 @@ class BalanceFrame:
         self._sf_target = target_copy
         # Keep the raw-SampleFrame target link in sync with the populated copy
         # (a richer BalanceFrame/Sample link is left untouched).
-        # pyrefly: ignore [not-iterable]
         target_link = self._links.get("target") if self._links else None
         if target_link is not None and not isinstance(target_link, BalanceFrame):
             # pyrefly: ignore [unsupported-operation]
@@ -4228,7 +4213,6 @@ class BalanceFrame:
             df = df.loc[:, df.columns.isin(keep_set)]
 
             new_covars = [c for c in sf._column_roles["covars"] if c in keep_set]
-            # pyrefly: ignore [missing-attribute]
             sf._column_roles = dict(sf._column_roles)
             sf._column_roles["covars"] = new_covars
             if sf._column_roles["outcomes"]:
@@ -4244,7 +4228,6 @@ class BalanceFrame:
                     c for c in sf._column_roles["ignored"] if c in keep_set
                 ]
 
-        # pyrefly: ignore [missing-attribute]
         sf._df = df
         return sf
 
@@ -4565,7 +4548,6 @@ class BalanceFrame:
 
         if self.has_target():
             common_variables = balance_util.choose_variables(
-                # pyrefly: ignore [unsupported-operation]
                 self,
                 # pyrefly: ignore [unsupported-operation]
                 self._links["target"],

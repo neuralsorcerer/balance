@@ -734,7 +734,6 @@ def ipw(
 
     logger.info("Starting ipw function")
     np.random.seed(
-        # pyrefly: ignore [bad-argument-type]
         random_seed
     )  # setting random seed for cases of variations in sklearn
 

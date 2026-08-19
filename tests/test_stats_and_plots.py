@@ -2609,7 +2609,6 @@ class TestBalance_weighted_comparisons_stats(
         )
 
         # Create reproducible test data
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(876324)
         test_data = pd.DataFrame(np.random.rand(1000, 11))
         test_data["id"] = range(0, test_data.shape[0])
@@ -3261,7 +3260,6 @@ class TestKLDivergence(balance.testutil.BalanceTestCase):
         """
         from balance.stats_and_plots import weighted_comparisons_stats
 
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(42)
         sample_df = pd.DataFrame(
             {

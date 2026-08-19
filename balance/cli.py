@@ -1431,11 +1431,9 @@ class BalanceCLI:
 
         logger.info("Done fitting the model, writing output")
         # Remove unneeded rows and columns
-        # pyrefly: ignore [bad-argument-type]
         output_df = self.adapt_output(output_df)
 
         # Write output
-        # pyrefly: ignore [bad-argument-type]
         self.write_outputs(output_df, diagnostics_df)
 
 

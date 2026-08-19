@@ -638,7 +638,6 @@ class TestSample_base_and_adjust_methods(
 
         Verifies that null adjustment correctly reports method name.
         """
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(112358)
         s, t = self._create_test_sample_with_target()
 
@@ -653,7 +652,6 @@ class TestSample_base_and_adjust_methods(
         Verifies that IPW adjustment correctly reports method name
         and includes expected model structure (perf, fit, coefs).
         """
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(112358)
         s, t = self._create_test_sample_with_target()
 
@@ -793,7 +791,6 @@ class TestSample_metrics_methods(
         super().setUpClass()
 
         # --- Filtering tests: pre-compute adjusted sample (used by 5 tests) ---
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(112358)
         d = pd.DataFrame(np.random.rand(1000, 10))
         d["id"] = range(0, d.shape[0])
@@ -807,7 +804,6 @@ class TestSample_metrics_methods(
         cls._filtering_adjusted = s.adjust(cls._filtering_target, max_de=1.5)
 
         # --- With-outcomes filtering test: pre-compute adjusted sample ---
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(112358)
         d = pd.DataFrame(np.random.rand(1000, 11))
         d["id"] = range(0, d.shape[0])
@@ -819,7 +815,6 @@ class TestSample_metrics_methods(
         )
 
         # --- Outcome variance tests: pre-compute adjusted sample (used by 2 tests) ---
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(112358)
         d = pd.DataFrame(np.random.rand(1000, 10))
         d["id"] = range(0, d.shape[0])
@@ -973,7 +968,6 @@ class TestSample_metrics_methods(
         Returns:
             Tuple of (target_sample, source_sample_data) for variance tests
         """
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(112358)
 
         # Create target sample
@@ -1235,7 +1229,6 @@ class TestSample_metrics_methods(
         Returns:
             Tuple of (source_sample, target_sample) for diagnostics tests
         """
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(112358)
 
         # Create source sample (200 rows is sufficient to validate diagnostics
@@ -1365,7 +1358,6 @@ class TestSample_metrics_methods(
         Returns:
             Tuple of (adjusted_sample, target_sample) for use in filtering tests
         """
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(112358)
 
         # Create source sample with transformed 'b' column
@@ -1647,7 +1639,6 @@ class TestSample_NA_behavior(balance.testutil.BalanceTestCase):
             s2.set_weights(np.ones(100))
             return s1.set_target(s2)
 
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(123)
         df = pd.DataFrame(
             {
@@ -2355,7 +2346,6 @@ class TestSampleSummaryIPWModel(balance.testutil.BalanceTestCase):
 
         Verifies line 1619-1624 in sample_class.py.
         """
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(42)
         sample = Sample.from_frame(
             pd.DataFrame(
@@ -2394,7 +2384,6 @@ class TestSampleStrWeightTrimmingPercentile(balance.testutil.BalanceTestCase):
         Note: The IPW method currently does not store weight_trimming_percentile
         in the model dictionary, so we manually inject it to test the display logic.
         """
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(42)
         sample = Sample.from_frame(
             pd.DataFrame(
@@ -2437,7 +2426,6 @@ class TestSampleDiagnosticsIPWModelParams(balance.testutil.BalanceTestCase):
     def setUpClass(cls) -> None:
         super().setUpClass()
         # Pre-compute the IPW-adjusted sample once (used by all tests in this class)
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(42)
         sample = Sample.from_frame(
             pd.DataFrame(

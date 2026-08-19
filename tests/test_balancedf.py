@@ -597,7 +597,6 @@ class TestBalanceDFOutcomes(BalanceTestCase):
         rendered summary so the published numbers stay in sync with library
         behavior.
         """
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(0)
         sample_df = pd.DataFrame(
             {
@@ -919,7 +918,6 @@ class TestBalanceDFWeights(BalanceTestCase):
             sample.weights().r_indicator(target_propensity=[1.0])
 
     def test_BalanceDFWeights_trim(self) -> None:
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(112358)  # Fix seed for reproducibility
         s = Sample.from_frame(
             pd.DataFrame({"w": np.random.uniform(0, 1, 10000), "id": range(0, 10000)}),
@@ -2312,7 +2310,7 @@ class TestBalanceDF_asmd(BalanceTestCase):
     def test_BalanceDFCovars_love_plot_invalid_metric_raises(self) -> None:
         """Unknown metric names get a clear error listing the valid set."""
         with self.assertRaisesRegex(ValueError, "metric must be one of"):
-            s3.covars().love_plot(metric="bogus")  # pyre-ignore[6]
+            s3.covars().love_plot(metric="bogus")
 
     def test_BalanceDFCovars_love_plot_threshold_default_per_metric(self) -> None:
         """``threshold=None`` resolves to 0.1 for ASMD and ``None`` for other metrics.
@@ -2463,7 +2461,6 @@ class TestBalanceDF_asmd(BalanceTestCase):
 
     def test_BalanceDF_asmd_aggregate_by_main_covar(self) -> None:
         # Prepare dummy data
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(112358)
 
         d = pd.DataFrame(np.random.rand(1000, 3))
@@ -4280,7 +4277,6 @@ class TestBalanceDFOutcomesHat(BalanceTestCase):
             pd.DataFrame({"id": [1, 2], "age": [10.0, 20.0], "weight": [1.0, 1.0]})
         )
         with self.assertRaisesRegex(ValueError, "no outcomes_hat columns are defined"):
-            # pyrefly: ignore [bad-argument-type]
             BalanceDFOutcomesHat(sample=sf)
 
     def test_outcomes_hat_linked_self_target_expansion(self) -> None:

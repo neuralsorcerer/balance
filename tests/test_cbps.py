@@ -351,7 +351,6 @@ class Testcbps(
         )
 
     def test__reverse_svd_and_centralization(self) -> None:
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(10)
         m, n = 4, 3
         X_matrix = np.random.randn(m, n)
@@ -429,7 +428,6 @@ class Testcbps(
         may vary slightly between runs, so we test relative ordering instead.
         """
         # Generate complex sample data
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(TEST_SEED)
 
         # Create continuous variables for sample
@@ -454,7 +452,6 @@ class Testcbps(
         sample_df = sample_df.rename(columns={i: "abcdefghij"[i] for i in range(0, 10)})
 
         # Generate complex target data with different distribution
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(TEST_SEED)
 
         # Create continuous variables with different distribution for target
@@ -487,7 +484,6 @@ class Testcbps(
         target_df = target_df.rename(columns={i: "abcdefghij"[i] for i in range(0, 10)})
 
         # Generate random weights for realism
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(TEST_SEED)
         sample_weights = pd.Series(np.random.uniform(0, 1, size=SAMPLE_SIZE))
         target_weights = pd.Series(np.random.uniform(0, 1, size=TARGET_SIZE))
@@ -698,7 +694,6 @@ class Testcbps(
         3. Handle the degenerate case gracefully
         """
         # Test with identical sample and target distributions
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(1)
         n_obs = 1000
         # pyrefly: ignore [missing-attribute]
@@ -1453,7 +1448,6 @@ class TestCbpsOptimizationConvergenceWarnings(balance.testutil.BalanceTestCase):
         import logging
 
         # Create data designed to cause convergence issues
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(42)
         n = 10
         # Sample with very different distribution than target
@@ -1530,7 +1524,6 @@ class TestCbpsOptimizationConvergenceWarnings(balance.testutil.BalanceTestCase):
         """
         import logging
 
-        # pyrefly: ignore [bad-argument-type]
         np.random.seed(123)
         n = 5
         # Create data that may cause alpha_function convergence issues
